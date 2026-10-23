@@ -2,6 +2,7 @@ package myau.ui.liquid;
 
 import myau.ATALOSS;
 import myau.module.Module;
+import myau.module.legit.LegitHudModule;
 import myau.module.modules.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
@@ -34,10 +35,16 @@ public class LiquidClickGui extends GuiScreen {
     private static LiquidClickGui instance;
 
     private final List<GlassPanel> panels = new ArrayList<>();
+    /** Legit 菜单的面板（只含 isLegit() 的模块，移植自 FPSMaster 的非作弊功能） */
+    private final List<GlassPanel> legitPanels = new ArrayList<>();
     private final StringBuilder search = new StringBuilder();
     private boolean searchFocused;
     private int searchW = 220;
     private int searchX = 10;
+    /** 顶部 Cheat / Legit 菜单切换胶囊 */
+    private static final int MENU_SWITCH_W = 154;
+    private static final int MENU_SWITCH_H = 20;
+    private static final int MENU_SWITCH_Y = 8;
 
     // backdrop blur pipeline: blurA holds the (full-res) frame copy and
     // later the final blurred result; blurB is the intermediate horizontal
@@ -74,6 +81,38 @@ public class LiquidClickGui extends GuiScreen {
             p.setLocation(px, 50);
             px += p.getWidth() + 12;
         }
+
+        // ===== Legit 菜单面板：HUD 信息类 / 其它 legit 工具 =====
+        List<Module> legitHud = new ArrayList<>();
+        List<Module> legitMisc = new ArrayList<>();
+        for (Module module : ATALOSS.moduleManager.modules.values()) {
+            if (!module.isLegit()) {
+                continue;
+            }
+            if (module instanceof LegitHudModule) {
+                legitHud.add(module);
+            } else {
+                legitMisc.add(module);
+            }
+        }
+        legitHud.sort(Comparator.comparing(m -> m.getName().toLowerCase()));
+        legitMisc.sort(Comparator.comparing(m -> m.getName().toLowerCase()));
+        if (!legitHud.isEmpty()) {
+            this.legitPanels.add(new GlassPanel("Legit HUD", legitHud, 0));
+        }
+        if (!legitMisc.isEmpty()) {
+            this.legitPanels.add(new GlassPanel("Legit Util", legitMisc, this.legitPanels.size()));
+        }
+        int lx = 14;
+        for (GlassPanel p : this.legitPanels) {
+            p.setLocation(lx, 50);
+            lx += p.getWidth() + 12;
+        }
+    }
+
+    /** 当前菜单要显示的面板集合（Cheat / Legit） */
+    private List<GlassPanel> activePanels() {
+        return GuiModule.isLegitMenu() ? this.legitPanels : this.panels;
     }
 
     public static LiquidClickGui getInstance() {
@@ -166,6 +205,14 @@ public class LiquidClickGui extends GuiScreen {
         mc.fontRendererObj.drawStringWithShadow("ATALOSS", 20, 12, GlassRenderer.ACCENT);
         mc.fontRendererObj.drawStringWithShadow("Dev TTHILLTT", 20, 24, GlassRenderer.TEXT_FAINT);
 
+        // 顶部菜单切换：Cheat / Legit
+        this.drawMenuSwitch(mouseX, mouseY);
+        if (this.activePanels().isEmpty()) {
+            // 只有 Legit 页可能为空（配置里被裁掉）→ 退回占位卡片
+            this.drawLegitPlaceholder();
+            return;
+        }
+
         // search bar — same liquid glass refraction as the panels
         int sy = 12;
         int searchH = 20;
@@ -211,9 +258,9 @@ public class LiquidClickGui extends GuiScreen {
         }
         drawSearchIcon(searchX + searchW - 18, sy + 6);
 
-        // panels
+        // panels（按当前菜单选 Cheat / Legit 面板集合，必须和事件处理用同一套）
         String filter = search.toString();
-        for (GlassPanel p : panels) {
+        for (GlassPanel p : this.activePanels()) {
             p.setFilter(filter);
             p.draw(mouseX, mouseY);
             p.handleDrag(mouseX, mouseY);
@@ -322,6 +369,93 @@ public class LiquidClickGui extends GuiScreen {
         }
     }
 
+    private int menuSwitchX() {
+        return this.width - MENU_SWITCH_W - 12;
+    }
+
+    /** 顶部菜单切换胶囊：左半 Cheat、右半 Legit，点击哪半就切到哪个菜单 */
+    private void drawMenuSwitch(int mouseX, int mouseY) {
+        int bx = this.menuSwitchX();
+        int by = MENU_SWITCH_Y;
+        int half = MENU_SWITCH_W / 2;
+        boolean legit = GuiModule.isLegitMenu();
+        boolean hover = mouseX >= bx && mouseX <= bx + MENU_SWITCH_W && mouseY >= by && mouseY <= by + MENU_SWITCH_H;
+        drawGlassCapsuleBg(bx, by, MENU_SWITCH_W, MENU_SWITCH_H, hover ? 1.0F : 0.85F);
+        // 选中段高亮
+        int activeX = legit ? bx + half : bx;
+        GlassRenderer.drawCapsuleRect(activeX + 1, by + 1, half - 2, MENU_SWITCH_H - 2, GlassRenderer.ACTIVE_FILL);
+        String cheat = "Cheat";
+        String legitText = "Legit";
+        mc.fontRendererObj.drawString(
+                cheat,
+                bx + half / 2 - mc.fontRendererObj.getStringWidth(cheat) / 2,
+                by + 6,
+                legit ? GlassRenderer.TEXT_DIM : GlassRenderer.TEXT_MAIN
+        );
+        mc.fontRendererObj.drawString(
+                legitText,
+                bx + half + half / 2 - mc.fontRendererObj.getStringWidth(legitText) / 2,
+                by + 6,
+                legit ? GlassRenderer.TEXT_MAIN : GlassRenderer.TEXT_DIM
+        );
+    }
+
+    /** @return 是否命中菜单切换按钮（命中则不再把点击传给面板） */
+    private boolean handleMenuSwitchClick(int mouseX, int mouseY, int mouseButton) {
+        int bx = this.menuSwitchX();
+        int by = MENU_SWITCH_Y;
+        if (mouseButton != 0 || mouseX < bx || mouseX > bx + MENU_SWITCH_W || mouseY < by || mouseY > by + MENU_SWITCH_H) {
+            return false;
+        }
+        GuiModule.setMenu(mouseX < bx + MENU_SWITCH_W / 2 ? GuiModule.MENU_CHEAT : GuiModule.MENU_LEGIT);
+        return true;
+    }
+
+    /** Legit 菜单占位页：先做壳（玻璃卡片 + 标题），后续再加功能 */
+    private void drawLegitPlaceholder() {
+        int cardW = 300;
+        int cardH = 132;
+        int x = this.width / 2 - cardW / 2;
+        int y = this.height / 2 - cardH / 2;
+        int blurTex = getBlurTexture();
+        if (blurTex > 0) {
+            ScaledResolution sr = new ScaledResolution(mc);
+            int sw = sr.getScaledWidth(), sh = sr.getScaledHeight();
+            GlStateManager.bindTexture(blurTex);
+            GlStateManager.enableTexture2D();
+            GlStateManager.disableCull();
+            GlStateManager.enableBlend();
+            GlStateManager.color(1, 1, 1, 0.72F);
+            GlassRenderer.LiquidGlassShader.INSTANCE.use();
+            GlassRenderer.LiquidGlassShader.INSTANCE.setPanelParams(
+                    0.5F, 0.5F * cardH / cardW,
+                    Math.min(24.0F / cardW, Math.min(0.5F, 0.5F * cardH / cardW)),
+                    cardW / (float) sw, cardH / (float) sh,
+                    x / (float) sw, 1 - y / (float) sh);
+            GL11.glBegin(GL11.GL_QUADS);
+            GL11.glTexCoord2f(0, 0);
+            GL11.glVertex2f(x, y);
+            GL11.glTexCoord2f(1, 0);
+            GL11.glVertex2f(x + cardW, y);
+            GL11.glTexCoord2f(1, 1);
+            GL11.glVertex2f(x + cardW, y + cardH);
+            GL11.glTexCoord2f(0, 1);
+            GL11.glVertex2f(x, y + cardH);
+            GL11.glEnd();
+            GlassRenderer.LiquidGlassShader.INSTANCE.stop();
+            GlStateManager.color(1, 1, 1, 1);
+        }
+        GlassRenderer.drawRoundedRect(x, y + 3, cardW, cardH, 24, 0x15000000);
+        GlassRenderer.drawRoundedRect(x, y + 6, cardW, cardH, 24, 0x0C000000);
+        GlassRenderer.drawRoundedOutline(x + 0.5F, y + 0.5F, cardW - 1, cardH - 1, 24, 1.0F, GlassRenderer.GLASS_OUTLINE);
+        String title = "Legit Menu";
+        String hint = "No features yet";
+        mc.fontRendererObj.drawStringWithShadow(
+                title, this.width / 2 - mc.fontRendererObj.getStringWidth(title) / 2, y + 40, GlassRenderer.ACCENT);
+        mc.fontRendererObj.drawString(
+                hint, this.width / 2 - mc.fontRendererObj.getStringWidth(hint) / 2, y + 60, GlassRenderer.TEXT_DIM);
+    }
+
     private void drawSearchIcon(float cx, float cy) {
         GL11Helper.drawCircle(cx, cy, 2.6F, 0x9922C55E);
         GL11Helper.drawCircle(cx + 4.2F, cy + 4.2F, 1.2F, 0x9922C55E);
@@ -379,7 +513,7 @@ public class LiquidClickGui extends GuiScreen {
             int dir = wheel > 0 ? -1 : 1;
             int mx = Mouse.getEventX() * width / mc.displayWidth;
             int my = height - Mouse.getEventY() * height / mc.displayHeight - 1;
-            for (GlassPanel p : panels) {
+            for (GlassPanel p : this.activePanels()) {
                 p.onScroll(mx, my, dir);
             }
         }
@@ -389,7 +523,7 @@ public class LiquidClickGui extends GuiScreen {
         if (Mouse.isButtonDown(0)) {
             int mx = Mouse.getEventX() * width / mc.displayWidth;
             int my = height - Mouse.getEventY() * height / mc.displayHeight - 1;
-            for (GlassPanel p : panels) {
+            for (GlassPanel p : this.activePanels()) {
                 p.mouseDragged(mx, my);
             }
         }
@@ -398,15 +532,18 @@ public class LiquidClickGui extends GuiScreen {
 
     @Override
     public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+        if (this.handleMenuSwitchClick(mouseX, mouseY, mouseButton)) {
+            return;
+        }
         searchFocused = mouseX >= searchX && mouseX <= searchX + searchW && mouseY >= 12 && mouseY <= 32;
-        for (GlassPanel p : panels) {
+        for (GlassPanel p : this.activePanels()) {
             p.mouseDown(mouseX, mouseY, mouseButton);
         }
     }
 
     @Override
     public void mouseReleased(int mouseX, int mouseY, int mouseButton) {
-        for (GlassPanel p : panels) {
+        for (GlassPanel p : this.activePanels()) {
             p.mouseReleased(mouseX, mouseY, mouseButton);
         }
     }
@@ -417,7 +554,7 @@ public class LiquidClickGui extends GuiScreen {
             mc.displayGuiScreen(null);
             return;
         }
-        for (GlassPanel p : panels) {
+        for (GlassPanel p : this.activePanels()) {
             p.keyTyped(typedChar, keyCode);
         }
         if (!searchFocused) return;

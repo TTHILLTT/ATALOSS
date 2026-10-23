@@ -97,6 +97,11 @@ public class ClickGui extends GuiScreen {
     private static ClickGui instance;
     private final File configFile = new File("./config/ATALOSS/", "clickgui.txt");
     private final ArrayList<CategoryComponent> categoryList;
+    /** Legit 菜单的分类（只含 isLegit() 的模块） */
+    private final ArrayList<CategoryComponent> legitCategoryList;
+    /** 顶部 Cheat / Legit 菜单切换按钮 */
+    private static final int MENU_SWITCH_W = 150;
+    private static final int MENU_SWITCH_H = 14;
 
     public ClickGui() {
         instance = this;
@@ -187,12 +192,22 @@ public class ClickGui extends GuiScreen {
         playerModules.sort(comparator);
         miscModules.sort(comparator);
 
+        // Legit 菜单的模块（isLegit()：HUD 信息 / 视觉辅助等非作弊功能）
+        List<Module> legitModules = new ArrayList<>();
+        for (Module module : ATALOSS.moduleManager.modules.values()) {
+            if (module.isLegit()) {
+                legitModules.add(module);
+            }
+        }
+        legitModules.sort(comparator);
+
         Set<Module> registered = new HashSet<>();
         registered.addAll(combatModules);
         registered.addAll(movementModules);
         registered.addAll(renderModules);
         registered.addAll(playerModules);
         registered.addAll(miscModules);
+        registered.addAll(legitModules);
 
         for (Module module : ATALOSS.moduleManager.modules.values()) {
             if (!registered.contains(module)) {
@@ -228,7 +243,27 @@ public class ClickGui extends GuiScreen {
         misc.setY(topOffset);
         categoryList.add(misc);
 
+        // ===== Legit 菜单分类 =====
+        this.legitCategoryList = new ArrayList<>();
+        if (!legitModules.isEmpty()) {
+            CategoryComponent legit = new CategoryComponent("Legit", legitModules);
+            legit.setY(5);
+            this.legitCategoryList.add(legit);
+        }
+
         loadPositions();
+    }
+
+    /** 当前菜单要显示的分类（Cheat / Legit） */
+    private ArrayList<CategoryComponent> activeCategories() {
+        return GuiModule.isLegitMenu() && !this.legitCategoryList.isEmpty() ? this.legitCategoryList : this.categoryList;
+    }
+
+    /** 两套分类都要持久化位置 */
+    private ArrayList<CategoryComponent> allCategories() {
+        ArrayList<CategoryComponent> all = new ArrayList<>(this.categoryList);
+        all.addAll(this.legitCategoryList);
+        return all;
     }
 
     public static ClickGui getInstance() {
@@ -239,6 +274,67 @@ public class ClickGui extends GuiScreen {
         super.initGui();
     }
 
+    private int menuSwitchX() {
+        return this.width - MENU_SWITCH_W - 4;
+    }
+
+    /** 顶部菜单切换按钮：左半 Cheat、右半 Legit，点哪半切到哪个菜单 */
+    private void drawMenuSwitch(int mouseX, int mouseY) {
+        int sx = this.menuSwitchX();
+        int sy = 4;
+        int half = MENU_SWITCH_W / 2;
+        boolean legit = GuiModule.isLegitMenu();
+        boolean hover = mouseX >= sx && mouseX <= sx + MENU_SWITCH_W && mouseY >= sy && mouseY <= sy + MENU_SWITCH_H;
+        drawRect(sx, sy, sx + MENU_SWITCH_W, sy + MENU_SWITCH_H, hover ? 0xE61E1E24 : 0xD218181D);
+        int accent = new Color(60, 162, 253).getRGB();
+        if (legit) {
+            drawRect(sx + half, sy, sx + MENU_SWITCH_W, sy + MENU_SWITCH_H, accent);
+        } else {
+            drawRect(sx, sy, sx + half, sy + MENU_SWITCH_H, accent);
+        }
+        String cheat = "Cheat";
+        String legitText = "Legit";
+        mc.fontRendererObj.drawStringWithShadow(
+                cheat,
+                sx + half / 2 - mc.fontRendererObj.getStringWidth(cheat) / 2,
+                sy + 3,
+                legit ? 0xFF9A9AA5 : 0xFFFFFFFF
+        );
+        mc.fontRendererObj.drawStringWithShadow(
+                legitText,
+                sx + half + half / 2 - mc.fontRendererObj.getStringWidth(legitText) / 2,
+                sy + 3,
+                legit ? 0xFFFFFFFF : 0xFF9A9AA5
+        );
+    }
+
+    /** @return 是否命中菜单切换按钮（命中则不再把点击传给分类面板） */
+    private boolean handleMenuSwitchClick(int mouseX, int mouseY, int mouseButton) {
+        int sx = this.menuSwitchX();
+        int sy = 4;
+        if (mouseButton != 0 || mouseX < sx || mouseX > sx + MENU_SWITCH_W || mouseY < sy || mouseY > sy + MENU_SWITCH_H) {
+            return false;
+        }
+        GuiModule.setMenu(mouseX < sx + MENU_SWITCH_W / 2 ? GuiModule.MENU_CHEAT : GuiModule.MENU_LEGIT);
+        return true;
+    }
+
+    /** Legit 菜单占位页：先做壳，后续再加功能 */
+    private void drawLegitPlaceholder() {
+        int cardW = 220;
+        int cardH = 52;
+        int x = this.width / 2 - cardW / 2;
+        int y = this.height / 2 - cardH / 2;
+        drawRect(x, y, x + cardW, y + cardH, new Color(20, 20, 25, 220).getRGB());
+        drawRect(x, y, x + 1, y + cardH, new Color(60, 162, 253).getRGB());
+        String title = "Legit Menu";
+        String hint = "No features yet";
+        mc.fontRendererObj.drawStringWithShadow(
+                title, this.width / 2 - mc.fontRendererObj.getStringWidth(title) / 2, y + 12, new Color(60, 162, 253).getRGB());
+        mc.fontRendererObj.drawString(
+                hint, this.width / 2 - mc.fontRendererObj.getStringWidth(hint) / 2, y + 28, 0xFF9A9AA5);
+    }
+
     public void drawScreen(int x, int y, float p) {
         drawRect(0, 0, this.width, this.height, new Color(0, 0, 0, 100).getRGB());
 
@@ -246,7 +342,16 @@ public class ClickGui extends GuiScreen {
         mc.fontRendererObj.drawStringWithShadow("dev, ksyz", 4, this.height - 3 - mc.fontRendererObj.FONT_HEIGHT * 2, new Color(60, 162, 253).getRGB());
         mc.fontRendererObj.drawStringWithShadow("TTHILLTT Forked", 4, this.height - 3 - mc.fontRendererObj.FONT_HEIGHT, new Color(60, 162, 253).getRGB());
 
-        for (CategoryComponent category : categoryList) {
+        // 顶部菜单切换：Cheat / Legit
+        this.drawMenuSwitch(x, y);
+        ArrayList<CategoryComponent> categories = this.activeCategories();
+        if (categories.isEmpty()) {
+            // 只有 Legit 页可能为空 → 退回占位提示
+            this.drawLegitPlaceholder();
+            return;
+        }
+
+        for (CategoryComponent category : categories) {
             category.render(this.fontRendererObj);
             category.handleDrag(x, y);
 
@@ -258,14 +363,17 @@ public class ClickGui extends GuiScreen {
         int wheel = Mouse.getDWheel();
         if (wheel != 0) {
             int scrollDir = wheel > 0 ? 1 : -1;
-            for (CategoryComponent category : categoryList) {
+            for (CategoryComponent category : categories) {
                 category.onScroll(x, y, scrollDir);
             }
         }
     }
 
     public void mouseClicked(int x, int y, int mouseButton) {
-        Iterator<CategoryComponent> btnCat = categoryList.iterator();
+        if (this.handleMenuSwitchClick(x, y, mouseButton)) {
+            return;
+        }
+        Iterator<CategoryComponent> btnCat = this.activeCategories().iterator();
         while (true) {
             CategoryComponent category;
             do {
@@ -299,7 +407,7 @@ public class ClickGui extends GuiScreen {
     }
 
     public void mouseReleased(int x, int y, int mouseButton) {
-        Iterator<CategoryComponent> iterator = categoryList.iterator();
+        Iterator<CategoryComponent> iterator = this.activeCategories().iterator();
 
         CategoryComponent categoryComponent;
         while (iterator.hasNext()) {
@@ -309,7 +417,7 @@ public class ClickGui extends GuiScreen {
             }
         }
 
-        iterator = categoryList.iterator();
+        iterator = this.activeCategories().iterator();
 
         while (true) {
             do {
@@ -332,7 +440,7 @@ public class ClickGui extends GuiScreen {
         if (key == 1) {
             this.mc.displayGuiScreen(null);
         } else {
-            Iterator<CategoryComponent> btnCat = categoryList.iterator();
+            Iterator<CategoryComponent> btnCat = this.activeCategories().iterator();
 
             while (true) {
                 CategoryComponent cat;
@@ -363,7 +471,7 @@ public class ClickGui extends GuiScreen {
 
     private void savePositions() {
         JsonObject json = new JsonObject();
-        for (CategoryComponent cat : categoryList) {
+        for (CategoryComponent cat : this.allCategories()) {
             JsonObject pos = new JsonObject();
             pos.addProperty("x", cat.getX());
             pos.addProperty("y", cat.getY());
@@ -381,7 +489,7 @@ public class ClickGui extends GuiScreen {
         if (!configFile.exists()) return;
         try (FileReader reader = new FileReader(configFile)) {
             JsonObject json = new JsonParser().parse(reader).getAsJsonObject();
-            for (CategoryComponent cat : categoryList) {
+            for (CategoryComponent cat : this.allCategories()) {
                 if (json.has(cat.getName())) {
                     JsonObject pos = json.getAsJsonObject(cat.getName());
                     cat.setX(pos.get("x").getAsInt());

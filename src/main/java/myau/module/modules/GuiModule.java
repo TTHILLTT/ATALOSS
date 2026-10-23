@@ -15,6 +15,11 @@ public class GuiModule extends Module {
     /** 1 = Liquid Glass GUI（全屏 FBO + 着色器，开销高） */
     public static final int STYLE_LIQUID = 1;
     public final ModeProperty style = new ModeProperty("style", STYLE_LIQUID, new String[]{"LIGHTWEIGHT", "LIQUID"});
+    /** 0 = Cheat Menu（现有模块面板）；1 = Legit Menu（先只做壳，后续再加功能） */
+    public static final int MENU_CHEAT = 0;
+    public static final int MENU_LEGIT = 1;
+    /** 顶部菜单切换按钮改的就是这个属性（两套 GUI 共用、随配置持久化） */
+    public final ModeProperty menu = new ModeProperty("menu", MENU_CHEAT, new String[]{"CHEAT", "LEGIT"});
     private ClickGui lightweightGui;
     private LiquidClickGui liquidGui;
 
@@ -34,6 +39,26 @@ public class GuiModule extends Module {
         }
         GuiModule module = (GuiModule) ATALOSS.moduleManager.modules.get(GuiModule.class);
         return module != null && module.style.getValue() == STYLE_LIQUID;
+    }
+
+    /** 当前是否停在 Legit 菜单（两套 GUI 共用同一份状态） */
+    public static boolean isLegitMenu() {
+        if (ATALOSS.moduleManager == null) {
+            return false;
+        }
+        GuiModule module = (GuiModule) ATALOSS.moduleManager.modules.get(GuiModule.class);
+        return module != null && module.menu.getValue() == MENU_LEGIT;
+    }
+
+    /** 供 GUI 顶部的菜单切换按钮调用 */
+    public static void setMenu(int index) {
+        if (ATALOSS.moduleManager == null) {
+            return;
+        }
+        GuiModule module = (GuiModule) ATALOSS.moduleManager.modules.get(GuiModule.class);
+        if (module != null) {
+            module.menu.setValue(index);
+        }
     }
 
     @Override
