@@ -10,6 +10,7 @@
 这是一个 **Minecraft 1.8.9 Forge 客户端 Mod（作弊客户端 / hacked client）**，名为 **ATALOSS**，
 是开源客户端 **ATALOSS**（上游作者 `60124808866` / TTHILLTT）的**二次开发分支**，
 面向 **BedWars / 竞技 PvP** 场景，核心价值是 ~69 个战斗、移动、世界感知、背包自动化模块，
+外加 **14 个从 FPSMaster Edge 移植的 Legit 功能**（HUD 信息 / 视觉辅助，放在 Legit 菜单里），
 外加一套**自绘的 "Liquid Glass" ClickGUI**（FBO + GLSL 折射）和一个从 Raven/Flux 移植过来的
 **脚本化 Telly 自动化模块（3344 行，全项目最大文件）**。
 
@@ -104,7 +105,7 @@ modid=ataloss      version=1.0.2     jarName=ATALOSS
 
 | 包 | 行数 | 文件 | 内容 |
 |---|---:|---:|---|
-| `myau.module` | 14,144 | 71 | `Module` 基类 + `ModuleManager` + **69 个功能模块**（含 Telly 3344 行） |
+| `myau.module` | 16,316 | 86 | `Module` 基类 + `ModuleManager` + **69 个作弊模块** + `legit/` 下 **14 个 Legit 模块**（含 Telly 3344 行） |
 | `myau.ui` | 3,568 | 22 | 新 `ui/liquid/*`（约 2,000 行）+ 旧 `ClickGui`/`components`/`dataset`（约 1,500 行，**已成死代码**） |
 | `myau.mixin` | 2,032 | 42 | 29 个 `Mixin*` 注入 + 13 个 `IAccessor*` 接口 |
 | `myau.util` | 2,002 | 18 | 工具类 + `util/shader/{Shader,GlowShader,OutlineShader}` |
@@ -285,8 +286,16 @@ PacketEvent(SEND) → 可取消
 
 | 样式 | 类 | 特点 |
 |---|---|---|
-| `LIGHTWEIGHT` | `myau.ui.ClickGui`（OpenMyau 原版，396 行 + `components/`/`dataset/`/`callback/`） | 纯 2D 立即模式绘制，无 FBO / 无着色器，开销低；面板位置存 `./config/ATALOSS/clickgui.txt` |
-| `LIQUID` | `myau.ui.liquid.LiquidClickGui`（441 行 + 玻璃管线） | 全屏 FBO 折射 + 着色器，视觉最好但开销高（弱机改用 `LIGHTWEIGHT`） |
+| `LIGHTWEIGHT` | `myau.ui.ClickGui`（OpenMyau 原版，419 行 + `components/`/`dataset/`/`callback/`） | 纯 2D 立即模式绘制，无 FBO / 无着色器，开销低；面板位置存 `./config/ATALOSS/clickgui.txt` |
+| `LIQUID` | `myau.ui.liquid.LiquidClickGui`（534 行 + 玻璃管线） | 全屏 FBO 折射 + 着色器，视觉最好但开销高（弱机改用 `LIGHTWEIGHT`） |
+
+- **顶部菜单切换（两套 GUI 都有）**：窗口最顶端右侧是一枚 `Cheat | Legit` 双段胶囊/按钮，左半 Cheat、右半 Legit，
+  点哪半就切到哪个菜单。状态存在 `GuiModule.menu`（`CHEAT`/`LEGIT`，随配置持久化，两套 GUI 共用），
+  也可用 `.clickgui menu legit` 切换。
+  - `CHEAT` = 69 个作弊模块按 Combat / Movement / Render / Player / Misc 分成 5 个面板；
+  - `LEGIT` = **14 个从 FPSMaster Edge 移植的 Legit 功能**，分成 `Legit HUD`（HUD 信息类）与 `Legit Util`
+    两个面板，搜索、滚动、拖拽、属性编辑与 Cheat 页完全一致（面板集合由 `activePanels()` 切换）；
+    若没有任何 Legit 模块则退回一张占位卡片。
 
 - **入口**：`GuiModule`（模块名 `ClickGui`，`setKey(KEY_RSHIFT)`，默认关闭）→ `onEnabled()` 里先 `setEnabled(false)`
   （"动作假模块"），再按 `style` 打开对应 GUI；`.module clickgui style LIGHTWEIGHT` 也能切。
@@ -310,9 +319,11 @@ drawScreen(mouseX, mouseY, partialTicks)
 │   ├─ 绑回主 FBO，恢复 viewport / Blend / Alpha / Texture2D
 │   └─ 失败时降级为纯色背景 drawRect(0x99050508)，并置 blurFailed 不再重试
 ├─ 2 个环境光斑（drawRoundedRect，绿/蓝低 alpha）
-├─ 标题胶囊（"ATALOSS" / "Dev TTHILLTT"）（右上角的 "State: Switch|Accent" 样式切换胶囊已移除）
+├─ 标题胶囊（"ATALOSS" / "Dev TTHILLTT"）
+├─ 顶部菜单切换胶囊（最右端：`Cheat | Legit`，点击哪半切到哪个菜单，状态存 `GuiModule.menu`）
 ├─ 搜索胶囊（同一折射 shader，uCapsule=1）+ 3 层阴影 + 发丝线 + 光标闪烁
-└─ 5 个 GlassPanel（Combat / Movement / Render / Player / Misc）
+└─ Cheat 页：5 个 GlassPanel（Combat / Movement / Render / Player / Misc）
+   Legit 页（占位壳）：中央玻璃卡片 "Legit Menu / No features yet"，不画搜索栏与面板
     ├─ 面板背景 = LiquidGlassShader 采样 blurA（SDF 圆角盒 + 边缘折射）
     ├─ 3 层阴影 + 圆角外框（arcSq 超椭圆四角，13 段/角）
     ├─ scissor 裁剪 → GlassModuleEntry 列表（开关 / 展开箭头 / hover 弹簧动画）
@@ -431,7 +442,7 @@ drawScreen(mouseX, mouseY, partialTicks)
 
 ---
 
-## 11. 模块目录（69 个，全部注册且全部出现在 GUI 分类里）
+## 11. 模块目录（83 个 = 69 个作弊模块 + 14 个 Legit 模块，全部注册）
 
 **统计**：默认开启 4 个（`HUD`、`Fullbright`、`NoHitDelay`、`Sprint`）；默认 `hidden` 13 个
 （`AntiObfuscate`、`BedTracker`、`Fullbright`、`HUD`、`Indicators`、`LightningTracker`、`MCF`、`NickHider`、
@@ -498,7 +509,7 @@ drawScreen(mouseX, mouseY, partialTicks)
 | `NoHurtCam` | 12 | 减弱受伤镜头抖动 | `multiplier`(0)；`MixinEntityRenderer` ModifyConstant 14.0F |
 | `ViewClip` | 26 | 第三人称穿墙 + 去雾 | `MixinEntityRenderer` redirect `Vec3.distanceTo`(orientCamera) 与 `Block.getMaterial`(setupFog) |
 | `HUD` | 293 | Arraylist 模块列表 + 主题 + 计时 | `color` RAINBOW/CHROMA/ASTOLFO/CUSTOM1/2/3、`color-speed/saturation/brightness`、`position-x/y`、`scale`、`background`、`bar`、`shadow`、`suffixes`、`lower-case`、`chat-outline`(给 `.` 指令输入框描边)、`blink-timer`(显示 blink 包数)、`toggle-sounds`、`toggle-alerts` |
-| `GuiModule` | 62 | ClickGui 开关 + GUI 样式（模块名显示为 `ClickGui`） | `setKey(KEY_RSHIFT)`、`style`(**LIGHTWEIGHT**/**LIQUID**，默认 LIQUID)；`onEnabled()` 立即 `setEnabled(false)` 后按样式打开 `myau.ui.ClickGui` 或 `LiquidClickGui`（"动作假模块"，`ModuleManager` 专门屏蔽它的聊天提示）；`useLiquidGui()` 是两套 GUI 互斥的单一判定源 |
+| `GuiModule` | 94 | ClickGui 开关 + GUI 样式 + 菜单页（模块名显示为 `ClickGui`） | `setKey(KEY_RSHIFT)`、`style`(LIGHTWEIGHT/**LIQUID**)、`menu`(**CHEAT**/LEGIT)；`onEnabled()` 立即 `setEnabled(false)` 后按样式打开 `myau.ui.ClickGui` 或 `LiquidClickGui`（"动作假模块"，`ModuleManager` 专门屏蔽它的聊天提示）；静态 `useLiquidGui()` / `isLegitMenu()` / `setMenu()` 是两套 GUI 共用的状态入口 |
 
 ### 11.4 Player（13）
 
@@ -588,11 +599,46 @@ drawScreen(mouseX, mouseY, partialTicks)
 - `Telly.findPitchPlacementForTarget`：最坏 5 面 × 81 点 × 27 目标 = 上万次 raycast（**只有它做了 `deadlineMs` 时间预算**，其 L959-962 的中文注释记录了"高 FPS 下按帧预搜索导致窗口未响应"的修复）。
 - `GL11` 层：Liquid GUI 每帧上千个立即模式批次 + 每模块一次 `new ScaledResolution` + 多次 `new ArrayList`。
 
+### 11.7 Legit 菜单模块（14 个，移植自 FPSMaster Edge）
+
+`myau/module/legit/`（15 文件 / 660 行）。标记方式：`Module` 新增 `legit` 字段与 `isLegit()`，两套 GUI 据此
+把模块分流到 Legit 页（`LiquidClickGui.legitPanels` / `ClickGui.legitCategoryList`）。所有 Legit 模块默认
+`hidden = true`（不重复出现在 HUD 的模块列表里），位置用 `offset-x/offset-y` + `scale` 像素定位（暂无拖拽编辑器）。
+
+`LegitHudModule` 是文本型 HUD 的基类（`offset-x/offset-y/scale/shadow/background` + `renderLines()`）；
+**注意**：事件系统只扫「本类声明」的方法，所以每个子类都必须自己写一个 `@EventTarget onRender2D` 调 `renderLines()`。
+
+| 模块 | 对应 FPSMaster | 作用 | 关键配置 |
+|---|---|---|---|
+| `FpsDisplay` | FPSDisplay | FPS 数字 | 位置/缩放/阴影/背景 |
+| `CpsDisplay` | CPSDisplay | 左右键 CPS（1 秒滑动窗口） | 同上 |
+| `ClockDisplay` | ClockDisplay | 本地时钟 | `24h` |
+| `CoordsDisplay` | CoordsDisplay | 坐标，可显示下界/主世界换算 | `nether-coords` |
+| `DirectionDisplay` | DirectionDisplay | 朝向 + 轴（0=南/+Z…） | — |
+| `PingDisplay` | PingDisplay | 延迟 ms（`NetworkPlayerInfo`） | — |
+| `PlayTimeDisplay` | PlayTime | 本次会话时长 hh:mm:ss | — |
+| `PotionDisplay` | PotionDisplay | 药水效果列表（名称+等级+剩余） | `duration` |
+| `ServerDisplay` | ServerAddressDisplay | 当前服务器 IP / Singleplayer | — |
+| `ReachDisplay` | ReachDisplay | 最近一次命中的距离（只读） | `reset-ms` |
+| `ComboDisplay` | ComboDisplay | 连击计数，超时清零 | `timeout-ms` |
+| `Keystrokes` | Keystrokes | WASD + LMB/RMB 按键高亮 | `key-size`/`gap`/`mouse`/两个颜色 |
+| `CustomFov` | CustomFOV | 开启时锁定 FOV，关闭还原 | `fov` |
+| `TimeChanger` | TimeChanger | 客户端锁定世界时间 | `time` |
+
+**没有移植的（说明）**：`optimizes/*`（性能优化，按要求排除）、`PerformanceHud`（依赖性能监控）、`MotionBlur`（FBO 累加）、
+`Replay`/`Director`（整套录像系统）、`MiniMap`（自绘 FBO 小地图）、`cosmetic/*`、`ChatAvatars`（需要网络+纹理缓存）、
+`LyricsDisplay`（依赖音乐模块）、`FreeLook`/`OldAnimations`/`ItemPhysics`/`CustomFog`/`MoreParticles`/`HideIndicator`/
+`BlockIndicator`/`FireModifier`/`BetterFishingRod`/`FixedInventory`（都要动渲染或 Mixin，属于"难以融合"）、
+`BetterChat`/`BetterScreen`/`CustomTitles`/`TabOverlay`/`Scoreboard`/`ModsList`（需要自己的 UI/字体/i18n 栈）、
+`RawInput`（原生输入）、`AutoGG`/`AutoText`/`SoundModifier` 等（可后续按需加，本次未做）。
+> 另外 `Fullbright` / `NoHurtCam` / `NickHider` / `Sprint` 在 ATALOSS 里本就有（属作弊菜单），未重复成 Legit 模块。
+
 
 ## 12. 与上游的差异（fork 增量清单）
 
 **新增/替换**
 - `myau.ui.liquid.*`（6 文件 ≈ 2,000 行）：Liquid Glass GUI，`GuiModule` 的唯一入口
+- `myau.module.legit.*`（15 文件 ≈ 660 行）：从 **FPSMaster Edge** 移植的 14 个 Legit 功能，见 §11.7
 - `myau.module.modules.Telly`（3,344 行）：Raven/Flux 风格的脚本化自动化模块
 - `FastPlace` 增加 `KEEPY` 模式（本地新增，非上游）：长按右键期间限定在同一 Y 层放置，见 §11.4
 - 品牌重构（两步：`659fea1` 把 `Myau` 改成 `OpenMyau++`，本次再把 `OpenMyau++/OpenMyauPP` 改成 `ATALOSS`）：
@@ -601,7 +647,8 @@ drawScreen(mouseX, mouseY, partialTicks)
   （作者署名 `TTHILLTT` 与 Java 包名 `myau` 保持不动）
 - `Mixin` 与各指令的包名/引用批量改写（`659fea1 Rebuild` 一次提交改了 40+ 文件）
 
-**继承自上游**：69 个功能模块、事件总线、Mixin 体系、属性系统、配置系统、账号管理器、188 份预设。
+**继承自上游**：69 个作弊模块、事件总线、Mixin 体系、属性系统、配置系统、账号管理器、188 份预设；
+外加本次本地新增的 14 个 Legit 模块（`myau/module/legit/`，移植自 FPSMaster Edge）。
 
 **模块级溯源（git 验证，基线 = `d4e3ea6` "init" 2025-10-02，即 README 所说的 `Myau-250910`）**
 - 战斗类 23 个中 **18 个来自基线**（AimAssist、AntiDebuff、AntiFireball、AntiObbyTrap、AutoClicker、AutoHeal、
