@@ -143,6 +143,11 @@ public class ATALOSS {
         moduleManager.modules.put(Keystrokes.class, new Keystrokes());
         moduleManager.modules.put(CustomFov.class, new CustomFov());
         moduleManager.modules.put(TimeChanger.class, new TimeChanger());
+        moduleManager.modules.put(HudEditor.class, new HudEditor());
+        moduleManager.modules.put(AutoGG.class, new AutoGG());
+        moduleManager.modules.put(AutoText.class, new AutoText());
+        moduleManager.modules.put(SoundModifier.class, new SoundModifier());
+        moduleManager.modules.put(ToggleSneak.class, new ToggleSneak());
         commandManager.commands.add(new BindCommand());
         commandManager.commands.add(new ConfigCommand());
         commandManager.commands.add(new DenickCommand());

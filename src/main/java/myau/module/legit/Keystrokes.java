@@ -26,6 +26,17 @@ public class Keystrokes extends LegitHudModule {
         return null;
     }
 
+    @Override
+    public int[] getBounds() {
+        float scaleFactor = this.scale.getValue();
+        float size = (float) this.keySize.getValue();
+        float spacing = size + (float) this.gap.getValue();
+        int rows = this.showMouse.getValue() ? 3 : 2;
+        int width = (int) Math.ceil(spacing * 3.0F * scaleFactor);
+        int height = (int) Math.ceil((spacing * (float) rows - (float) this.gap.getValue()) * scaleFactor);
+        return new int[]{this.offsetX.getValue(), this.offsetY.getValue(), width, height};
+    }
+
     @EventTarget
     public void onRender2D(Render2DEvent event) {
         if (!this.isEnabled() || mc.thePlayer == null || mc.gameSettings.showDebugInfo) {

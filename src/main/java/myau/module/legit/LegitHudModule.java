@@ -44,6 +44,36 @@ public abstract class LegitHudModule extends Module {
         return 0xFFFFFFFF;
     }
 
+    /**
+     * 拖拽编辑器用：元素在缩放后坐标系里的包围盒 {x, y, w, h}。
+     * 默认按 {@link #getLines()} 文本尺寸计算；自定义绘制的子类可以覆盖。
+     */
+    public int[] getBounds() {
+        String[] lines = this.getLines();
+        int lineCount = lines == null || lines.length == 0 ? 1 : lines.length;
+        int textWidth = 0;
+        if (lines != null) {
+            for (String line : lines) {
+                textWidth = Math.max(textWidth, mc.fontRendererObj.getStringWidth(line));
+            }
+        }
+        if (textWidth <= 0) {
+            // 本 tick 没有内容（比如没有药水效果）时给一个占位尺寸，保证编辑器里能抓得到
+            textWidth = mc.fontRendererObj.getStringWidth(this.getName());
+        }
+        float scaleFactor = this.scale.getValue();
+        int lineHeight = mc.fontRendererObj.FONT_HEIGHT + 1;
+        int width = (int) Math.ceil((float) textWidth * scaleFactor) + 4;
+        int height = (int) Math.ceil((float) (lineCount * lineHeight) * scaleFactor) + 2;
+        return new int[]{this.offsetX.getValue(), this.offsetY.getValue(), width, height};
+    }
+
+    /** 拖拽编辑器写入位置（像素坐标，>= 0） */
+    public void setPosition(int x, int y) {
+        this.offsetX.setValue(Math.max(0, x));
+        this.offsetY.setValue(Math.max(0, y));
+    }
+
     /** 供子类取 FPS（Minecraft.getDebugFPS 是静态方法，放在基类里省得每个类都 import） */
     protected static int getFps() {
         return Minecraft.getDebugFPS();
