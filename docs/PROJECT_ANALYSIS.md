@@ -10,7 +10,7 @@
 这是一个 **Minecraft 1.8.9 Forge 客户端 Mod（作弊客户端 / hacked client）**，名为 **ATALOSS**，
 是开源客户端 **ATALOSS**（上游作者 `60124808866` / TTHILLTT）的**二次开发分支**，
 面向 **BedWars / 竞技 PvP** 场景，核心价值是 ~69 个战斗、移动、世界感知、背包自动化模块，
-外加 **19 个从 FPSMaster Edge 移植的 Legit 功能**（HUD 信息 / 视觉辅助 / 聊天与输入类，放在 Legit 菜单里），
+外加 **20 个从 FPSMaster Edge 移植的 Legit 功能**（HUD 信息 / 视觉辅助 / 聊天与输入类，放在 Legit 菜单里），
 外加一套**自绘的 "Liquid Glass" ClickGUI**（FBO + GLSL 折射）和一个从 Raven/Flux 移植过来的
 **脚本化 Telly 自动化模块（3344 行，全项目最大文件）**。
 
@@ -293,7 +293,7 @@ PacketEvent(SEND) → 可取消
   点哪半就切到哪个菜单。状态存在 `GuiModule.menu`（`CHEAT`/`LEGIT`，随配置持久化，两套 GUI 共用），
   也可用 `.clickgui menu legit` 切换。
   - `CHEAT` = 69 个作弊模块按 Combat / Movement / Render / Player / Misc 分成 5 个面板；
-  - `LEGIT` = **19 个从 FPSMaster Edge 移植的 Legit 功能**，分成 `Legit HUD`（HUD 信息类）与 `Legit Util`
+  - `LEGIT` = **20 个从 FPSMaster Edge 移植的 Legit 功能**，分成 `Legit HUD`（HUD 信息类）与 `Legit Util`
     两个面板，搜索、滚动、拖拽、属性编辑与 Cheat 页完全一致（面板集合由 `activePanels()` 切换）；
     若没有任何 Legit 模块则退回一张占位卡片。
 
@@ -442,7 +442,7 @@ drawScreen(mouseX, mouseY, partialTicks)
 
 ---
 
-## 11. 模块目录（88 个 = 69 个作弊模块 + 19 个 Legit 模块，全部注册）
+## 11. 模块目录（89 个 = 69 个作弊模块 + 20 个 Legit 模块，全部注册）
 
 **统计**：默认开启 4 个（`HUD`、`Fullbright`、`NoHitDelay`、`Sprint`）；默认 `hidden` 13 个
 （`AntiObfuscate`、`BedTracker`、`Fullbright`、`HUD`、`Indicators`、`LightningTracker`、`MCF`、`NickHider`、
@@ -599,7 +599,7 @@ drawScreen(mouseX, mouseY, partialTicks)
 - `Telly.findPitchPlacementForTarget`：最坏 5 面 × 81 点 × 27 目标 = 上万次 raycast（**只有它做了 `deadlineMs` 时间预算**，其 L959-962 的中文注释记录了"高 FPS 下按帧预搜索导致窗口未响应"的修复）。
 - `GL11` 层：Liquid GUI 每帧上千个立即模式批次 + 每模块一次 `new ScaledResolution` + 多次 `new ArrayList`。
 
-### 11.7 Legit 菜单模块（19 个，移植自 FPSMaster Edge）
+### 11.7 Legit 菜单模块（20 个，移植自 FPSMaster Edge）
 
 `myau/module/legit/`（20 文件 / 905 行）+ `myau/ui/HudEditorScreen.java`（141 行）。标记方式：`Module` 新增
 `legit` 字段与 `isLegit()`，两套 GUI 据此把模块分流到 Legit 页（`LiquidClickGui.legitPanels` /
@@ -631,6 +631,7 @@ drawScreen(mouseX, mouseY, partialTicks)
 | `SoundModifier` | SoundModifier | 主音量调节，关闭还原 | `volume` |
 | `ToggleSneak` | ToggleSneak | 按一次 Shift 持续潜行 | — |
 | `HudEditor` | （HudEditorScreen） | 打开 HUD 拖拽编辑器（动作模块，可绑键） | — |
+| `OldAnimations` | OldAnimations | 1.7 动画：第一人称格挡 11 种风格 + 挥击/吃用/拉弓/鱼竿/第三人称格挡/受伤闪烁 + 蹲下视角 | `block-style`、8 个开关、`x`/`y`/`z`/`scale` |
 
 **HUD 拖拽编辑器（`myau/ui/HudEditorScreen.java`）**
 
@@ -642,6 +643,11 @@ drawScreen(mouseX, mouseY, partialTicks)
   因此编辑器里的盒子与真实位置一一对应。
 - 依赖事实：`Render2DEvent` 由 `MixinGuiIngameForge.renderGameOverlay` 触发，**GUI 打开时 HUD 仍会渲染**，
   所以编辑器能直接看到元素本体。
+
+**OldAnimations 的 Mixin 层（本地新增）**：`MixinItemRenderer`（`@Inject(HEAD,cancellable)` 接管
+`renderItemInFirstPerson`，只在模块开启时生效，不用 `@Overwrite`；`NoShield` 在上游是声明未用的死开关，未移植）、
+`MixinLayerHeldItem`（第三人称格挡姿态）、`MixinLayerArmorBase`（`shouldCombineTextures` → 1.7 受伤闪烁）、
+`MixinEntityRenderer` 增补（`orientCamera` 内 `getEyeHeight` 重定向 → 蹲下视角插值）。
 
 **没有移植的（说明）**：`optimizes/*`（性能优化，按要求排除）、`PerformanceHud`（依赖性能监控）、`MotionBlur`（FBO 累加）、
 `Replay`/`Director`（整套录像系统）、`MiniMap`（自绘 FBO 小地图）、`cosmetic/*`、`ChatAvatars`（需要网络+纹理缓存）、
@@ -667,7 +673,8 @@ drawScreen(mouseX, mouseY, partialTicks)
 - `Mixin` 与各指令的包名/引用批量改写（`659fea1 Rebuild` 一次提交改了 40+ 文件）
 
 **继承自上游**：69 个作弊模块、事件总线、Mixin 体系、属性系统、配置系统、账号管理器、188 份预设；
-外加本次本地新增的 19 个 Legit 模块（`myau/module/legit/`）与 HUD 拖拽编辑器（`myau/ui/HudEditorScreen`）。
+外加本次本地新增的 20 个 Legit 模块（`myau/module/legit/`）、HUD 拖拽编辑器（`myau/ui/HudEditorScreen`）
+与 3 个新 Mixin（`MixinItemRenderer` / `MixinLayerHeldItem` / `MixinLayerArmorBase`）。
 
 **模块级溯源（git 验证，基线 = `d4e3ea6` "init" 2025-10-02，即 README 所说的 `Myau-250910`）**
 - 战斗类 23 个中 **18 个来自基线**（AimAssist、AntiDebuff、AntiFireball、AntiObbyTrap、AutoClicker、AutoHeal、
