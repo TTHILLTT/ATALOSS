@@ -10,6 +10,7 @@ import myau.event.EventManager;
 import myau.management.*;
 import myau.module.Module;
 import myau.module.ModuleManager;
+import myau.module.legit.*;
 import myau.module.modules.*;
 import myau.property.Property;
 import myau.property.PropertyManager;
@@ -127,6 +128,21 @@ public class ATALOSS {
         moduleManager.modules.put(ViewClip.class, new ViewClip());
         moduleManager.modules.put(Wtap.class, new Wtap());
         moduleManager.modules.put(Xray.class, new Xray());
+        // ===== Legit 菜单模块（移植自 FPSMaster Edge 的非作弊功能） =====
+        moduleManager.modules.put(FpsDisplay.class, new FpsDisplay());
+        moduleManager.modules.put(CpsDisplay.class, new CpsDisplay());
+        moduleManager.modules.put(ClockDisplay.class, new ClockDisplay());
+        moduleManager.modules.put(CoordsDisplay.class, new CoordsDisplay());
+        moduleManager.modules.put(DirectionDisplay.class, new DirectionDisplay());
+        moduleManager.modules.put(PingDisplay.class, new PingDisplay());
+        moduleManager.modules.put(PlayTimeDisplay.class, new PlayTimeDisplay());
+        moduleManager.modules.put(PotionDisplay.class, new PotionDisplay());
+        moduleManager.modules.put(ServerDisplay.class, new ServerDisplay());
+        moduleManager.modules.put(ReachDisplay.class, new ReachDisplay());
+        moduleManager.modules.put(ComboDisplay.class, new ComboDisplay());
+        moduleManager.modules.put(Keystrokes.class, new Keystrokes());
+        moduleManager.modules.put(CustomFov.class, new CustomFov());
+        moduleManager.modules.put(TimeChanger.class, new TimeChanger());
         commandManager.commands.add(new BindCommand());
         commandManager.commands.add(new ConfigCommand());
         commandManager.commands.add(new DenickCommand());
@@ -144,17 +160,22 @@ public class ATALOSS {
         commandManager.commands.add(new VclipCommand());
         for (Module module : moduleManager.modules.values()) {
             ArrayList<Property<?>> properties = new ArrayList<>();
-            for (final Field field : module.getClass().getDeclaredFields()) {
-                field.setAccessible(true);
-                final Object obj;
-                try {
-                    obj = field.get(module);
-                } catch (IllegalAccessException e) {
-                    throw new RuntimeException(e);
-                }
-                if (obj instanceof Property<?>) {
-                    ((Property<?>) obj).setOwner(module);
-                    properties.add((Property<?>) obj);
+            // 沿类继承链收集属性：Legit 模块把 offset/scale 等属性放在 LegitHudModule 基类里，
+            // 只扫 getDeclaredFields() 会漏掉它们（GUI 里看不到、配置也存不下来）
+            for (Class<?> clazz = module.getClass(); clazz != null && clazz != Object.class; clazz = clazz.getSuperclass()) {
+                for (final Field field : clazz.getDeclaredFields()) {
+                    field.setAccessible(true);
+                    final Object obj;
+                    try {
+                        obj = field.get(module);
+                    } catch (IllegalAccessException e) {
+                        throw new RuntimeException(e);
+                    }
+                    // 用身份去重，避免子类遮蔽同名字段时重复收集
+                    if (obj instanceof Property<?> && !properties.contains(obj)) {
+                        ((Property<?>) obj).setOwner(module);
+                        properties.add((Property<?>) obj);
+                    }
                 }
             }
             propertyManager.properties.put(module.getClass(), properties);

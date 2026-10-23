@@ -9,19 +9,31 @@ public abstract class Module {
     protected final boolean defaultEnabled;
     protected final int defaultKey;
     protected final boolean defaultHidden;
+    /** 是否属于 Legit 菜单（HUD 信息 / 视觉辅助等非作弊功能） */
+    protected final boolean legit;
     protected boolean enabled;
     protected int key;
     protected boolean hidden;
 
     public Module(String name, boolean enabled) {
-        this(name, enabled, false);
+        this(name, enabled, false, false);
     }
 
     public Module(String name, boolean enabled, boolean hidden) {
+        this(name, enabled, hidden, false);
+    }
+
+    public Module(String name, boolean enabled, boolean hidden, boolean legit) {
         this.name = name;
         this.enabled = this.defaultEnabled = enabled;
         this.key = this.defaultKey = 0;
         this.hidden = this.defaultHidden = hidden;
+        this.legit = legit;
+    }
+
+    /** 该模块显示在 Legit 菜单还是 Cheat 菜单 */
+    public boolean isLegit() {
+        return this.legit;
     }
 
     public String getName() {
