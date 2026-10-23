@@ -6,6 +6,7 @@ import myau.event.EventManager;
 import myau.events.PickEvent;
 import myau.events.RaytraceEvent;
 import myau.events.Render3DEvent;
+import myau.module.legit.OldAnimations;
 import myau.module.modules.*;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
@@ -285,5 +286,30 @@ public abstract class MixinEntityRenderer {
             }
         }
         return ((IAccessorEntityLivingBase) entityPlayerSP).getActivePotionsMap().containsKey(potion.id);
+    }
+
+    @Unique
+    private float ataloss$partialTicks;
+
+    @Inject(
+            method = {"orientCamera"},
+            at = {@At("HEAD")}
+    )
+    private void ataloss$capturePartialTicks(float partialTicks, CallbackInfo callbackInfo) {
+        this.ataloss$partialTicks = partialTicks;
+    }
+
+    @Redirect(
+            method = {"orientCamera"},
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/entity/Entity;getEyeHeight()F"
+            )
+    )
+    private float ataloss$eyeHeight(Entity entity) {
+        if (OldAnimations.using && entity == this.mc.thePlayer) {
+            return OldAnimations.getClientEyeHeight(this.ataloss$partialTicks);
+        }
+        return entity.getEyeHeight();
     }
 }

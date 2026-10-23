@@ -148,6 +148,7 @@ public class ATALOSS {
         moduleManager.modules.put(AutoText.class, new AutoText());
         moduleManager.modules.put(SoundModifier.class, new SoundModifier());
         moduleManager.modules.put(ToggleSneak.class, new ToggleSneak());
+        moduleManager.modules.put(OldAnimations.class, new OldAnimations());
         commandManager.commands.add(new BindCommand());
         commandManager.commands.add(new ConfigCommand());
         commandManager.commands.add(new DenickCommand());
