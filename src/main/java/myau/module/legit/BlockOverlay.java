@@ -16,7 +16,6 @@ import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.MovingObjectPosition;
-import org.lwjgl.opengl.GL11;
 
 /**
  * 准星指向方块的填充/描边（对应 FPSMaster 的 BlockOverlay）。
@@ -80,7 +79,7 @@ public class BlockOverlay extends Module {
             GlStateManager.depthMask(false);
             GlStateManager.enableBlend();
             GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
-            this.drawOutline(outlineBox, color, this.width.getValue());
+            this.drawOutlineBars(outlineBox, color, this.width.getValue());
             GlStateManager.depthMask(true);
         }
         GlStateManager.enableDepth();
@@ -132,44 +131,74 @@ public class BlockOverlay extends Module {
         tessellator.draw();
     }
 
-    /** 12 条棱，自己用 GL_LINES 画，不依赖 RenderUtil 的描边封装 */
-    private void drawOutline(AxisAlignedBB box, int argb, float lineWidth) {
+    /** 12 条棱画成细长方体（复用 quad 路径，绕开 GL_LINES） */
+    private void drawOutlineBars(AxisAlignedBB box, int argb, float lineWidth) {
         int a = (argb >>> 24) & 0xFF;
         int r = (argb >> 16) & 0xFF;
         int g = (argb >> 8) & 0xFF;
         int b = argb & 0xFF;
-        GL11.glLineWidth(lineWidth);
+        double t = Math.max(0.012D, (double) lineWidth * 0.01D);
         Tessellator tessellator = Tessellator.getInstance();
         WorldRenderer wr = tessellator.getWorldRenderer();
-        wr.begin(3, DefaultVertexFormats.POSITION_COLOR);
-        // 底面 4 条
-        wr.pos(box.minX, box.minY, box.minZ).color(r, g, b, a).endVertex();
-        wr.pos(box.maxX, box.minY, box.minZ).color(r, g, b, a).endVertex();
-        wr.pos(box.maxX, box.minY, box.minZ).color(r, g, b, a).endVertex();
-        wr.pos(box.maxX, box.minY, box.maxZ).color(r, g, b, a).endVertex();
-        wr.pos(box.maxX, box.minY, box.maxZ).color(r, g, b, a).endVertex();
-        wr.pos(box.minX, box.minY, box.maxZ).color(r, g, b, a).endVertex();
-        wr.pos(box.minX, box.minY, box.maxZ).color(r, g, b, a).endVertex();
-        wr.pos(box.minX, box.minY, box.minZ).color(r, g, b, a).endVertex();
-        // 顶面 4 条
-        wr.pos(box.minX, box.maxY, box.minZ).color(r, g, b, a).endVertex();
-        wr.pos(box.maxX, box.maxY, box.minZ).color(r, g, b, a).endVertex();
-        wr.pos(box.maxX, box.maxY, box.minZ).color(r, g, b, a).endVertex();
-        wr.pos(box.maxX, box.maxY, box.maxZ).color(r, g, b, a).endVertex();
-        wr.pos(box.maxX, box.maxY, box.maxZ).color(r, g, b, a).endVertex();
-        wr.pos(box.minX, box.maxY, box.maxZ).color(r, g, b, a).endVertex();
-        wr.pos(box.minX, box.maxY, box.maxZ).color(r, g, b, a).endVertex();
-        wr.pos(box.minX, box.maxY, box.minZ).color(r, g, b, a).endVertex();
-        // 4 条竖棱
-        wr.pos(box.minX, box.minY, box.minZ).color(r, g, b, a).endVertex();
-        wr.pos(box.minX, box.maxY, box.minZ).color(r, g, b, a).endVertex();
-        wr.pos(box.maxX, box.minY, box.minZ).color(r, g, b, a).endVertex();
-        wr.pos(box.maxX, box.maxY, box.minZ).color(r, g, b, a).endVertex();
-        wr.pos(box.maxX, box.minY, box.maxZ).color(r, g, b, a).endVertex();
-        wr.pos(box.maxX, box.maxY, box.maxZ).color(r, g, b, a).endVertex();
-        wr.pos(box.minX, box.minY, box.maxZ).color(r, g, b, a).endVertex();
-        wr.pos(box.minX, box.maxY, box.maxZ).color(r, g, b, a).endVertex();
+        wr.begin(7, DefaultVertexFormats.POSITION_COLOR);
+        double minX = box.minX, minY = box.minY, minZ = box.minZ;
+        double maxX = box.maxX, maxY = box.maxY, maxZ = box.maxZ;
+        // 底面
+        this.edge(wr, minX, minY, minZ, maxX, minY, minZ, t, r, g, b, a);
+        this.edge(wr, maxX, minY, minZ, maxX, minY, maxZ, t, r, g, b, a);
+        this.edge(wr, maxX, minY, maxZ, minX, minY, maxZ, t, r, g, b, a);
+        this.edge(wr, minX, minY, maxZ, minX, minY, minZ, t, r, g, b, a);
+        // 顶面
+        this.edge(wr, minX, maxY, minZ, maxX, maxY, minZ, t, r, g, b, a);
+        this.edge(wr, maxX, maxY, minZ, maxX, maxY, maxZ, t, r, g, b, a);
+        this.edge(wr, maxX, maxY, maxZ, minX, maxY, maxZ, t, r, g, b, a);
+        this.edge(wr, minX, maxY, maxZ, minX, maxY, minZ, t, r, g, b, a);
+        // 竖棱
+        this.edge(wr, minX, minY, minZ, minX, maxY, minZ, t, r, g, b, a);
+        this.edge(wr, maxX, minY, minZ, maxX, maxY, minZ, t, r, g, b, a);
+        this.edge(wr, maxX, minY, maxZ, maxX, maxY, maxZ, t, r, g, b, a);
+        this.edge(wr, minX, minY, maxZ, minX, maxY, maxZ, t, r, g, b, a);
         tessellator.draw();
-        GL11.glLineWidth(2.0F);
+    }
+
+    /** 一条棱：沿轴方向取全长，另外两轴各加 t 的厚度，再按长方体出 6 个面 */
+    private void edge(WorldRenderer wr, double x1, double y1, double z1, double x2, double y2, double z2,
+                      double t, int r, int g, int b, int a) {
+        double hx = Math.abs(x2 - x1) > 1.0E-6D ? 0.0D : t;
+        double hy = Math.abs(y2 - y1) > 1.0E-6D ? 0.0D : t;
+        double hz = Math.abs(z2 - z1) > 1.0E-6D ? 0.0D : t;
+        double minX = Math.min(x1, x2) - hx, maxX = Math.max(x1, x2) + hx;
+        double minY = Math.min(y1, y2) - hy, maxY = Math.max(y1, y2) + hy;
+        double minZ = Math.min(z1, z2) - hz, maxZ = Math.max(z1, z2) + hz;
+        // 上
+        wr.pos(minX, maxY, minZ).color(r, g, b, a).endVertex();
+        wr.pos(minX, maxY, maxZ).color(r, g, b, a).endVertex();
+        wr.pos(maxX, maxY, maxZ).color(r, g, b, a).endVertex();
+        wr.pos(maxX, maxY, minZ).color(r, g, b, a).endVertex();
+        // 下
+        wr.pos(minX, minY, minZ).color(r, g, b, a).endVertex();
+        wr.pos(maxX, minY, minZ).color(r, g, b, a).endVertex();
+        wr.pos(maxX, minY, maxZ).color(r, g, b, a).endVertex();
+        wr.pos(minX, minY, maxZ).color(r, g, b, a).endVertex();
+        // 北
+        wr.pos(minX, minY, minZ).color(r, g, b, a).endVertex();
+        wr.pos(minX, maxY, minZ).color(r, g, b, a).endVertex();
+        wr.pos(maxX, maxY, minZ).color(r, g, b, a).endVertex();
+        wr.pos(maxX, minY, minZ).color(r, g, b, a).endVertex();
+        // 南
+        wr.pos(minX, minY, maxZ).color(r, g, b, a).endVertex();
+        wr.pos(maxX, minY, maxZ).color(r, g, b, a).endVertex();
+        wr.pos(maxX, maxY, maxZ).color(r, g, b, a).endVertex();
+        wr.pos(minX, maxY, maxZ).color(r, g, b, a).endVertex();
+        // 西
+        wr.pos(minX, minY, minZ).color(r, g, b, a).endVertex();
+        wr.pos(minX, minY, maxZ).color(r, g, b, a).endVertex();
+        wr.pos(minX, maxY, maxZ).color(r, g, b, a).endVertex();
+        wr.pos(minX, maxY, minZ).color(r, g, b, a).endVertex();
+        // 东
+        wr.pos(maxX, minY, minZ).color(r, g, b, a).endVertex();
+        wr.pos(maxX, maxY, minZ).color(r, g, b, a).endVertex();
+        wr.pos(maxX, maxY, maxZ).color(r, g, b, a).endVertex();
+        wr.pos(maxX, minY, maxZ).color(r, g, b, a).endVertex();
     }
 }
