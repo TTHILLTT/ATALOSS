@@ -40,6 +40,11 @@ public final class WardrobeRenderer {
             GlStateManager.disableCull();
         }
         GlStateManager.enableRescaleNormal();
+        // 皮肤第二层（帽子/衣服外层）依赖 alpha：这里确保混合 + alpha 测试都开着
+        GlStateManager.enableBlend();
+        GlStateManager.enableAlpha();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+        GlStateManager.alphaFunc(516, 0.1F);
         GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
         if (WardrobeTuning.lighting) {
             RenderHelper.enableStandardItemLighting();

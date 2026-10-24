@@ -7,14 +7,14 @@ package myau.ui;
  */
 public final class WardrobeTuning {
     /** 皮肤预览 */
-    public static float skinYaw = 145.0F;
+    public static float skinYaw = 0.0F;
     public static float skinPitch = 0.0F;
     public static float skinScale = 150.0F;
     public static float skinOffsetX = 0.0F;
     public static float skinOffsetY = -26.0F;
 
     /** 披风预览 */
-    public static float capeYaw = 160.0F;
+    public static float capeYaw = 180.0F;
     public static float capePitch = 8.0F;
     public static float capeScale = 100.0F;
     public static float capeOffsetX = 0.0F;
@@ -23,7 +23,7 @@ public final class WardrobeTuning {
     /** 渲染开关 */
     public static boolean cull = false;
     public static boolean depth = true;
-    public static boolean lighting = true;
+    public static boolean lighting = false;
     /** 在 3D 下面再叠一层平铺贴图，方便对比 */
     public static boolean flatUnderlay = false;
 
@@ -31,19 +31,19 @@ public final class WardrobeTuning {
     }
 
     public static void reset() {
-        skinYaw = 145.0F;
+        skinYaw = 0.0F;
         skinPitch = 0.0F;
         skinScale = 150.0F;
         skinOffsetX = 0.0F;
         skinOffsetY = 0.0F;
-        capeYaw = 160.0F;
+        capeYaw = 180.0F;
         capePitch = 8.0F;
         capeScale = 100.0F;
         capeOffsetX = 0.0F;
         capeOffsetY = 0.0F;
         cull = false;
         depth = true;
-        lighting = true;
+        lighting = false;
         flatUnderlay = false;
     }
 }
