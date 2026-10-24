@@ -52,7 +52,7 @@ public final class WardrobeRenderer {
         GL11.glDisable(GL11.GL_SCISSOR_TEST);
     }
 
-    /** 小人预览；size 是模型缩放（0.0625 = 原尺寸） */
+    /** 小人预览；size 是"每个模型单位对应多少 GUI 像素"（约 30 时小人 ≈ 60px 高） */
     public static void renderSkin(ResourceLocation texture, float centerX, float centerY, float size,
                                   float yaw, float pitch) {
         if (texture == null) {
@@ -64,9 +64,11 @@ public final class WardrobeRenderer {
             }
             playerModel.setRotationAngles(0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0625F, mc.thePlayer);
             GlStateManager.pushMatrix();
-            GlStateManager.translate(centerX, centerY, 120.0F);
-            GlStateManager.scale(-size, size, size);
-            GlStateManager.rotate(180.0F + yaw, 0.0F, 1.0F, 0.0F);
+            GlStateManager.translate(centerX, centerY, 100.0F);
+            // 双轴负缩放 + 绕 Z 旋 180°，保持三角形绕序（原版 GUI 物品栏预览同款做法）
+            GlStateManager.scale(-size, -size, size);
+            GlStateManager.rotate(180.0F, 0.0F, 0.0F, 1.0F);
+            GlStateManager.rotate(yaw, 0.0F, 1.0F, 0.0F);
             GlStateManager.rotate(pitch, 1.0F, 0.0F, 0.0F);
             mc.getTextureManager().bindTexture(texture);
             playerModel.render(mc.thePlayer, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0625F);
@@ -84,13 +86,14 @@ public final class WardrobeRenderer {
         try {
             buildCape();
             GlStateManager.pushMatrix();
-            GlStateManager.translate(centerX, centerY, 120.0F);
-            GlStateManager.scale(-size, size, size);
-            GlStateManager.rotate(180.0F + yaw, 0.0F, 1.0F, 0.0F);
+            GlStateManager.translate(centerX, centerY, 100.0F);
+            GlStateManager.scale(-size, -size, size);
+            GlStateManager.rotate(180.0F, 0.0F, 0.0F, 1.0F);
+            GlStateManager.rotate(yaw, 0.0F, 1.0F, 0.0F);
             GlStateManager.rotate(pitch, 1.0F, 0.0F, 0.0F);
             mc.getTextureManager().bindTexture(texture);
             GlStateManager.pushMatrix();
-            GlStateManager.translate(0.0F, -8.0F, 0.0F);
+            GlStateManager.translate(0.0F, 0.0F, 0.0F);
             for (int i = 0; i < capeSegments.length; i++) {
                 GlStateManager.pushMatrix();
                 GlStateManager.translate(0.0F, i * 4.0F, 0.0F);

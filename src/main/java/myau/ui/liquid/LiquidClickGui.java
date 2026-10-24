@@ -887,9 +887,9 @@ public class LiquidClickGui extends GuiScreen {
         try {
             WardrobeRenderer.begin(x, y, w, h, scaleFactor);
             if (tile.cape) {
-                WardrobeRenderer.renderCape(texture, centerX, centerY, 2.0F, 150.0F, 12.0F);
+                WardrobeRenderer.renderCape(texture, centerX, centerY, 26.0F, 160.0F, 10.0F);
             } else {
-                WardrobeRenderer.renderSkin(texture, centerX, centerY, 0.95F, 155.0F, 8.0F);
+                WardrobeRenderer.renderSkin(texture, centerX, centerY, 30.0F, 165.0F, 6.0F);
             }
             WardrobeRenderer.end();
         } catch (Throwable t) {
