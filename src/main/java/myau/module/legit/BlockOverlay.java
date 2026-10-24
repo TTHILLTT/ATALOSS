@@ -16,6 +16,7 @@ import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.MovingObjectPosition;
+import org.lwjgl.opengl.GL11;
 
 /**
  * 准星指向方块的填充/描边（对应 FPSMaster 的 BlockOverlay）。
@@ -57,22 +58,30 @@ public class BlockOverlay extends Module {
         double x = (double) pos.getX() - mc.getRenderManager().viewerPosX;
         double y = (double) pos.getY() - mc.getRenderManager().viewerPosY;
         double z = (double) pos.getZ() - mc.getRenderManager().viewerPosZ;
-        AxisAlignedBB box = new AxisAlignedBB(
+        // 填充略微外扩，避免和方块表面 z-fighting
+        AxisAlignedBB fillBox = new AxisAlignedBB(
                 x - 0.002, y - 0.002, z - 0.002,
                 x + 1.002, y + 1.002, z + 1.002);
+        // 描边再多外扩一点：填充面/方块表面几乎共面，共面时线会被深度测试整段吃掉
+        AxisAlignedBB outlineBox = new AxisAlignedBB(
+                x - 0.02, y - 0.02, z - 0.02,
+                x + 1.02, y + 1.02, z + 1.02);
 
         RenderUtil.enableRenderState();
         if (!this.throughBlock.getValue()) {
             GlStateManager.enableDepth();
         }
         if (this.fill.getValue()) {
-            this.drawFill(box, this.fillColor.getValue());
+            this.drawFill(fillBox, this.fillColor.getValue());
         }
         if (this.outline.getValue()) {
             int color = this.outlineColor.getValue();
-            RenderUtil.drawBoundingBox(box,
-                    (color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF,
-                    color >>> 24, this.width.getValue());
+            // 画线不写深度（仍然参与深度测试），否则线的光栅化位置容易被同深度像素覆盖
+            GlStateManager.depthMask(false);
+            GlStateManager.enableBlend();
+            GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+            this.drawOutline(outlineBox, color, this.width.getValue());
+            GlStateManager.depthMask(true);
         }
         GlStateManager.enableDepth();
         RenderUtil.disableRenderState();
@@ -121,5 +130,46 @@ public class BlockOverlay extends Module {
         wr.pos(box.maxX, box.maxY, box.maxZ).color(r, g, b, a).endVertex();
         wr.pos(box.maxX, box.minY, box.maxZ).color(r, g, b, a).endVertex();
         tessellator.draw();
+    }
+
+    /** 12 条棱，自己用 GL_LINES 画，不依赖 RenderUtil 的描边封装 */
+    private void drawOutline(AxisAlignedBB box, int argb, float lineWidth) {
+        int a = (argb >>> 24) & 0xFF;
+        int r = (argb >> 16) & 0xFF;
+        int g = (argb >> 8) & 0xFF;
+        int b = argb & 0xFF;
+        GL11.glLineWidth(lineWidth);
+        Tessellator tessellator = Tessellator.getInstance();
+        WorldRenderer wr = tessellator.getWorldRenderer();
+        wr.begin(3, DefaultVertexFormats.POSITION_COLOR);
+        // 底面 4 条
+        wr.pos(box.minX, box.minY, box.minZ).color(r, g, b, a).endVertex();
+        wr.pos(box.maxX, box.minY, box.minZ).color(r, g, b, a).endVertex();
+        wr.pos(box.maxX, box.minY, box.minZ).color(r, g, b, a).endVertex();
+        wr.pos(box.maxX, box.minY, box.maxZ).color(r, g, b, a).endVertex();
+        wr.pos(box.maxX, box.minY, box.maxZ).color(r, g, b, a).endVertex();
+        wr.pos(box.minX, box.minY, box.maxZ).color(r, g, b, a).endVertex();
+        wr.pos(box.minX, box.minY, box.maxZ).color(r, g, b, a).endVertex();
+        wr.pos(box.minX, box.minY, box.minZ).color(r, g, b, a).endVertex();
+        // 顶面 4 条
+        wr.pos(box.minX, box.maxY, box.minZ).color(r, g, b, a).endVertex();
+        wr.pos(box.maxX, box.maxY, box.minZ).color(r, g, b, a).endVertex();
+        wr.pos(box.maxX, box.maxY, box.minZ).color(r, g, b, a).endVertex();
+        wr.pos(box.maxX, box.maxY, box.maxZ).color(r, g, b, a).endVertex();
+        wr.pos(box.maxX, box.maxY, box.maxZ).color(r, g, b, a).endVertex();
+        wr.pos(box.minX, box.maxY, box.maxZ).color(r, g, b, a).endVertex();
+        wr.pos(box.minX, box.maxY, box.maxZ).color(r, g, b, a).endVertex();
+        wr.pos(box.minX, box.maxY, box.minZ).color(r, g, b, a).endVertex();
+        // 4 条竖棱
+        wr.pos(box.minX, box.minY, box.minZ).color(r, g, b, a).endVertex();
+        wr.pos(box.minX, box.maxY, box.minZ).color(r, g, b, a).endVertex();
+        wr.pos(box.maxX, box.minY, box.minZ).color(r, g, b, a).endVertex();
+        wr.pos(box.maxX, box.maxY, box.minZ).color(r, g, b, a).endVertex();
+        wr.pos(box.maxX, box.minY, box.maxZ).color(r, g, b, a).endVertex();
+        wr.pos(box.maxX, box.maxY, box.maxZ).color(r, g, b, a).endVertex();
+        wr.pos(box.minX, box.minY, box.maxZ).color(r, g, b, a).endVertex();
+        wr.pos(box.minX, box.maxY, box.maxZ).color(r, g, b, a).endVertex();
+        tessellator.draw();
+        GL11.glLineWidth(2.0F);
     }
 }
