@@ -79,6 +79,11 @@ dependencies {
 // Tasks:
 tasks.withType(JavaCompile::class) {
     options.encoding = "UTF-8"
+    // Mixin 的注解处理器每次编译都会「重写」mixins.ataloss.refmap.json，只写本次参与编译的类。
+    // 打开增量编译后，小改动会把 refmap 截成几条，jar 里 @Inject/@Accessor 全部按 MCP 原名去找
+    // 生产环境（srg）的目标 → could not find any targets / InvalidAccessorException。
+    // 因此关闭增量编译，保证每次都是完整 refmap。
+    options.isIncremental = false
 }
 tasks.withType(org.gradle.jvm.tasks.Jar::class) {
     archiveBaseName.set(jarName)
