@@ -881,22 +881,22 @@ public class LiquidClickGui extends GuiScreen {
         ScaledResolution sr = new ScaledResolution(mc);
         int scaleFactor = sr.getScaleFactor();
         float centerX = x + w / 2.0F;
-        float centerY = y + h * 0.72F;
-        // 打底：平铺贴图（一定可见，3D 失败时至少不空白）
-        this.drawPreview(tile.file, x, y, w, h);
+        // 皮肤模型高 1.5 单位、披风 1.0 单位；由方块高度反推缩放，留 8px 边距
+        float modelHeight = tile.cape ? 1.0F : 1.5F;
+        float size = (h - 8.0F) / modelHeight;
+        // 模型自身从头顶(-0.5)到脚(+1.5)，中点 0.5：让中点落在方块中心
+        float centerY = y + h / 2.0F - 0.5F * size;
         try {
             WardrobeRenderer.begin(x, y, w, h, scaleFactor);
             if (tile.cape) {
-                WardrobeRenderer.renderCape(texture, centerX, centerY, 26.0F, 160.0F, 10.0F);
+                WardrobeRenderer.renderCape(texture, centerX, centerY, size, 160.0F, 10.0F);
             } else {
-                WardrobeRenderer.renderSkin(texture, centerX, centerY, 30.0F, 165.0F, 6.0F);
+                WardrobeRenderer.renderSkin(texture, centerX, centerY, size, 165.0F, 6.0F);
             }
             WardrobeRenderer.end();
         } catch (Throwable t) {
             WardrobeRenderer.end();
+            this.drawPreview(tile.file, x, y, w, h);
         }
-        // 调试用边框：确认预览区域确实画到了（红=皮肤，青=披风）
-        GlassRenderer.drawRoundedOutline(x + 0.5F, y + 0.5F, w - 1.0F, h - 1.0F, 4.0F, 1.0F,
-                tile.cape ? 0xFF22D3EE : 0xFFFF3B30);
     }
 }
