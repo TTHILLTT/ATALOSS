@@ -103,8 +103,9 @@ public final class WardrobeRenderer {
             GlStateManager.translate(centerX + WardrobeTuning.capeOffsetX,
                     centerY + WardrobeTuning.capeOffsetY, 100.0F);
             float capeSize = size * WardrobeTuning.capeScale / 100.0F;
-            GlStateManager.scale(-capeSize, -capeSize, capeSize);
-            GlStateManager.rotate(180.0F, 0.0F, 0.0F, 1.0F);
+            // 与皮肤预览保持同一套手性修正：只翻 X，不加 rotate(180°,Z)，
+            // 否则披风和皮肤的手性不一致（披风看起来是镜像/反面）
+            GlStateManager.scale(-capeSize, capeSize, capeSize);
             GlStateManager.rotate(WardrobeTuning.capeYaw, 0.0F, 1.0F, 0.0F);
             GlStateManager.rotate(WardrobeTuning.capePitch, 1.0F, 0.0F, 0.0F);
             mc.getTextureManager().bindTexture(texture);
