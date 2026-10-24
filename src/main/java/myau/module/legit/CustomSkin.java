@@ -26,7 +26,7 @@ public class CustomSkin extends Module {
     public static boolean using = false;
 
     public final TextProperty path = new TextProperty("skin", "config/ATALOSS/skins/skin.png");
-    public final ModeProperty model = new ModeProperty("model", 0, new String[]{"DEFAULT", "SLIM"});
+    public final ModeProperty model = new ModeProperty("model", 0, new String[]{"AUTO", "DEFAULT", "SLIM"});
     public final BooleanProperty allPlayers = new BooleanProperty("all-players", false);
 
     public CustomSkin() {
@@ -41,9 +41,28 @@ public class CustomSkin extends Module {
         return SkinTexture.LOCATION;
     }
 
+    /** AUTO(0) 按皮肤文件自动识别，DEFAULT(1) 强制 Steve，SLIM(2) 强制 Alex */
     public static boolean isSlim() {
         CustomSkin module = instance();
-        return module != null && module.model.getValue() == 1;
+        if (module == null) {
+            return false;
+        }
+        int mode = module.model.getValue();
+        if (mode == 1) {
+            return false;
+        }
+        if (mode == 2) {
+            return true;
+        }
+        return myau.ui.WardrobePreview.isSlim(new java.io.File(resolvePath(module.path.getValue())));
+    }
+
+    private static String resolvePath(String path) {
+        java.io.File file = new java.io.File(path);
+        if (!file.isAbsolute()) {
+            file = new java.io.File(Minecraft.getMinecraft().mcDataDir, path);
+        }
+        return file.getAbsolutePath();
     }
 
     public static boolean appliesTo(Entity player) {

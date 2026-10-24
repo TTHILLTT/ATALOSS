@@ -24,14 +24,18 @@ public final class WardrobeFlatPreview {
         }
         float scale = (float) size[0] / 64.0F;
         float unit = (float) h / 32.0F;
-        float left = x + (w - 16.0F * unit) / 2.0F;
+        // Alex（slim）手臂 3px 宽，Steve 4px；自动识别后整套布局跟着变
+        boolean slim = WardrobePreview.isSlim(file);
+        float armW = slim ? 3.0F : 4.0F;
+        float totalW = 8.0F + armW * 2.0F;
+        float left = x + (w - totalW * unit) / 2.0F;
         float top = y;
-        part(texture, left + 4 * unit, top, 8 * unit, 8 * unit, size, 8 * scale, 8 * scale, 8 * scale, 8 * scale);
-        part(texture, left + 4 * unit, top + 8 * unit, 8 * unit, 12 * unit, size, 20 * scale, 20 * scale, 8 * scale, 12 * scale);
-        part(texture, left, top + 8 * unit, 4 * unit, 12 * unit, size, 44 * scale, 20 * scale, 4 * scale, 12 * scale);
-        part(texture, left + 12 * unit, top + 8 * unit, 4 * unit, 12 * unit, size, 36 * scale, 52 * scale, 4 * scale, 12 * scale);
-        part(texture, left + 4 * unit, top + 20 * unit, 4 * unit, 12 * unit, size, 4 * scale, 20 * scale, 4 * scale, 12 * scale);
-        part(texture, left + 8 * unit, top + 20 * unit, 4 * unit, 12 * unit, size, 20 * scale, 52 * scale, 4 * scale, 12 * scale);
+        part(texture, left + armW * unit, top, 8 * unit, 8 * unit, size, 8 * scale, 8 * scale, 8 * scale, 8 * scale);
+        part(texture, left + armW * unit, top + 8 * unit, 8 * unit, 12 * unit, size, 20 * scale, 20 * scale, 8 * scale, 12 * scale);
+        part(texture, left, top + 8 * unit, armW * unit, 12 * unit, size, 44 * scale, 20 * scale, armW * scale, 12 * scale);
+        part(texture, left + (armW + 8) * unit, top + 8 * unit, armW * unit, 12 * unit, size, 36 * scale, 52 * scale, armW * scale, 12 * scale);
+        part(texture, left + armW * unit, top + 20 * unit, 4 * unit, 12 * unit, size, 4 * scale, 20 * scale, 4 * scale, 12 * scale);
+        part(texture, left + (armW + 4) * unit, top + 20 * unit, 4 * unit, 12 * unit, size, 20 * scale, 52 * scale, 4 * scale, 12 * scale);
     }
 
     public static void drawCapeFront(File file, ResourceLocation texture, int x, int y, int w, int h) {
