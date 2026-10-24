@@ -5,10 +5,12 @@ import myau.module.Module;
 import myau.module.legit.LegitHudModule;
 import myau.module.modules.*;
 import myau.ui.WardrobeContent;
+import myau.ui.WardrobePreview;
 import myau.ui.WardrobeScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.client.shader.Framebuffer;
 import net.minecraft.client.renderer.GlStateManager;
 import org.lwjgl.input.Keyboard;
@@ -652,29 +654,57 @@ public class LiquidClickGui extends GuiScreen {
                 && mouseY >= by && mouseY <= by + WARDROBE_H;
     }
 
-    private static final int WARDROBE_CARD_W = 210;
-    private static final int WARDROBE_ROW_H = 16;
-    private static final int WARDROBE_CARD_Y = 54;
+    private static final int TILE_W = 84;
+    private static final int TILE_H = 92;
+    private static final int TILE_GAP = 8;
+    private static final int TILE_COLS_MAX = 6;
+    private static final int TILE_ROWS_MAX = 2;
+    private static final int WARDROBE_TOP = 56;
 
-    private int wardrobeLeftX() {
-        return this.width / 2 - WARDROBE_CARD_W - 8;
+    /** 一个衣柜方块：固定显示预览 + 文件名 */
+    private static final class WardrobeTile {
+        final int x;
+        final int y;
+        final java.io.File file;
+        final boolean cape;
+
+        WardrobeTile(int x, int y, java.io.File file, boolean cape) {
+            this.x = x;
+            this.y = y;
+            this.file = file;
+            this.cape = cape;
+        }
+
+        boolean contains(int mouseX, int mouseY) {
+            return mouseX >= this.x && mouseX <= this.x + TILE_W
+                    && mouseY >= this.y && mouseY <= this.y + TILE_H;
+        }
     }
 
-    private int wardrobeRightX() {
-        return this.width / 2 + 8;
+    private List<WardrobeTile> buildWardrobeTiles() {
+        List<WardrobeTile> tiles = new ArrayList<>();
+        int cols = Math.max(1, Math.min(TILE_COLS_MAX, (this.width - 40) / (TILE_W + TILE_GAP)));
+        int startX = this.width / 2 - (cols * TILE_W + (cols - 1) * TILE_GAP) / 2;
+        int y = this.appendTiles(tiles, WardrobeContent.capes(), true, startX, WARDROBE_TOP + 14, cols);
+        this.appendTiles(tiles, WardrobeContent.skins(), false, startX, y + 22, cols);
+        return tiles;
     }
 
-    private int wardrobeCardH(int rows) {
-        return 26 + rows * WARDROBE_ROW_H;
+    private int appendTiles(List<WardrobeTile> out, List<java.io.File> files, boolean cape,
+                            int startX, int y, int cols) {
+        int max = cols * TILE_ROWS_MAX;
+        int shown = Math.min(files.size(), max);
+        for (int i = 0; i < shown; i++) {
+            int col = i % cols;
+            int row = i / cols;
+            out.add(new WardrobeTile(startX + col * (TILE_W + TILE_GAP),
+                    y + row * (TILE_H + TILE_GAP), files.get(i), cape));
+        }
+        int rows = Math.max(1, (shown + cols - 1) / cols);
+        return y + rows * (TILE_H + TILE_GAP);
     }
 
-    /** Liquid 风格衣柜页：内容画在模糊背景上的玻璃卡片里 */
     private void drawWardrobePage(int mouseX, int mouseY) {
-        List<File> capes = WardrobeContent.capes();
-        List<File> skins = WardrobeContent.skins();
-        int leftRows = Math.min(capes.size(), WardrobeContent.MAX_ROWS) + 1;
-        int rightRows = Math.min(skins.size(), WardrobeContent.MAX_ROWS) + 1;
-
         String title = "Wardrobe";
         mc.fontRendererObj.drawStringWithShadow(
                 title, this.width / 2 - mc.fontRendererObj.getStringWidth(title) / 2, 34, GlassRenderer.ACCENT);
@@ -682,93 +712,125 @@ public class LiquidClickGui extends GuiScreen {
         mc.fontRendererObj.drawStringWithShadow(
                 hint, this.width / 2 - mc.fontRendererObj.getStringWidth(hint) / 2, 44, GlassRenderer.TEXT_DIM);
 
-        this.drawWardrobeCard("Capes", this.wardrobeLeftX(), capes, WardrobeContent.currentCape(), true, mouseX, mouseY);
-        this.drawWardrobeCard("Skins", this.wardrobeRightX(), skins, WardrobeContent.currentSkin(), false, mouseX, mouseY);
-    }
+        int cols = Math.max(1, Math.min(TILE_COLS_MAX, (this.width - 40) / (TILE_W + TILE_GAP)));
+        int startX = this.width / 2 - (cols * TILE_W + (cols - 1) * TILE_GAP) / 2;
 
-    private void drawWardrobeCard(String name, int x, List<File> files, String applied, boolean cape,
-                                  int mouseX, int mouseY) {
-        int rows = Math.min(files.size(), WardrobeContent.MAX_ROWS) + 1;
-        int height = this.wardrobeCardH(rows);
-        this.drawRefractionCard(x, WARDROBE_CARD_Y, WARDROBE_CARD_W, height, 14.0F);
-        mc.fontRendererObj.drawStringWithShadow(name, x + 10, WARDROBE_CARD_Y + 8, GlassRenderer.ACCENT);
-        String count = files.size() + " file(s)";
-        mc.fontRendererObj.drawStringWithShadow(count,
-                x + WARDROBE_CARD_W - 10 - mc.fontRendererObj.getStringWidth(count),
-                WARDROBE_CARD_Y + 8, GlassRenderer.TEXT_FAINT);
+        // 分区标题（Capes / Skins）+ 右侧的 None 按钮
+        this.drawWardrobeSectionHeader("Capes", startX, WARDROBE_TOP, WardrobeContent.capes().size(),
+                WardrobeContent.currentCape() == null ? "None is active" : "None", mouseX, mouseY);
+        int skinsHeaderY = WARDROBE_TOP + 14 + Math.max(1,
+                (Math.min(WardrobeContent.capes().size(), cols * TILE_ROWS_MAX) + cols - 1) / cols)
+                * (TILE_H + TILE_GAP) + 8;
+        this.drawWardrobeSectionHeader("Skins", startX, skinsHeaderY, WardrobeContent.skins().size(),
+                WardrobeContent.currentSkin() == null ? "None is active" : "None", mouseX, mouseY);
 
-        int rowY = WARDROBE_CARD_Y + 22;
-        this.drawWardrobeRow(x, rowY, "None", applied == null, mouseX, mouseY);
-        rowY += WARDROBE_ROW_H;
-        for (int i = 0; i < files.size() && i < WardrobeContent.MAX_ROWS; i++) {
-            File file = files.get(i);
-            String label = file.getName();
-            if (label.length() > 26) {
-                label = label.substring(0, 23) + "...";
-            }
-            boolean selected = applied != null && applied.equals(WardrobeContent.relative(cape, file));
-            this.drawWardrobeRow(x, rowY, label, selected, mouseX, mouseY);
-            rowY += WARDROBE_ROW_H;
-        }
-        if (files.size() > WardrobeContent.MAX_ROWS) {
-            mc.fontRendererObj.drawStringWithShadow("... +" + (files.size() - WardrobeContent.MAX_ROWS) + " more",
-                    x + 10, rowY + 2, GlassRenderer.TEXT_DIM);
+        for (WardrobeTile tile : this.buildWardrobeTiles()) {
+            this.drawWardrobeTile(tile, mouseX, mouseY);
         }
     }
 
-    private void drawWardrobeRow(int cardX, int rowY, String label, boolean selected, int mouseX, int mouseY) {
-        int rx = cardX + 6;
-        int rw = WARDROBE_CARD_W - 12;
-        boolean hover = mouseX >= rx && mouseX <= rx + rw && mouseY >= rowY && mouseY <= rowY + WARDROBE_ROW_H - 2;
+    private void drawWardrobeSectionHeader(String name, int x, int y, int count, String noneLabel,
+                                           int mouseX, int mouseY) {
+        mc.fontRendererObj.drawStringWithShadow(name, x + 2, y, GlassRenderer.ACCENT);
+        String files = count + " file(s)";
+        mc.fontRendererObj.drawStringWithShadow(files, x + TILE_W - mc.fontRendererObj.getStringWidth(files),
+                y, GlassRenderer.TEXT_FAINT);
+        int noneWidth = mc.fontRendererObj.getStringWidth(noneLabel) + 12;
+        int noneX = x + 2 * TILE_W + TILE_GAP - noneWidth;
+        boolean hover = mouseX >= noneX && mouseX <= noneX + noneWidth && mouseY >= y - 1 && mouseY <= y + 9;
+        GlassRenderer.drawRoundedRect(noneX, y - 1, noneWidth, 10, 4, hover ? 0x55FFFFFF : 0x33FFFFFF);
+        mc.fontRendererObj.drawStringWithShadow(noneLabel, noneX + 6, y,
+                hover ? GlassRenderer.TEXT_MAIN : GlassRenderer.TEXT_DIM);
+    }
+
+    private void drawWardrobeTile(WardrobeTile tile, int mouseX, int mouseY) {
+        boolean selected = this.isTileSelected(tile);
+        boolean hover = tile.contains(mouseX, mouseY);
+        this.drawRefractionCard(tile.x, tile.y, TILE_W, TILE_H, 10.0F);
         if (selected) {
-            GlassRenderer.drawRoundedRect(rx, rowY, rw, WARDROBE_ROW_H - 3, 6, GlassRenderer.ACTIVE_FILL);
+            GlassRenderer.drawRoundedRect(tile.x, tile.y, TILE_W, TILE_H, 10.0F, GlassRenderer.ACTIVE_FILL);
         } else if (hover) {
-            GlassRenderer.drawRoundedRect(rx, rowY, rw, WARDROBE_ROW_H - 3, 6, GlassRenderer.HOVER_FILL);
+            GlassRenderer.drawRoundedRect(tile.x, tile.y, TILE_W, TILE_H, 10.0F, GlassRenderer.HOVER_FILL);
+        }
+
+        // 常驻预览：披风按 2:1、皮肤按 1:1 居中塞进预览区
+        int previewW = TILE_W - 12;
+        int previewH = TILE_H - 30;
+        int boxW = tile.cape ? Math.min(previewW, previewH * 2) : Math.min(previewW, previewH);
+        int boxH = tile.cape ? boxW / 2 : boxW;
+        int boxX = tile.x + (TILE_W - boxW) / 2;
+        int boxY = tile.y + 6 + (previewH - boxH) / 2;
+        this.drawPreview(tile.file, boxX, boxY, boxW, boxH);
+
+        String label = tile.file.getName();
+        if (label.length() > 14) {
+            label = label.substring(0, 12) + "..";
         }
         mc.fontRendererObj.drawStringWithShadow(
-                (selected ? "> " : "  ") + label, rx + 6, rowY + 3,
-                selected ? GlassRenderer.ACCENT : (hover ? GlassRenderer.TEXT_MAIN : GlassRenderer.TEXT_DIM));
+                label, tile.x + TILE_W / 2 - mc.fontRendererObj.getStringWidth(label) / 2,
+                tile.y + TILE_H - 12, selected ? GlassRenderer.ACCENT : GlassRenderer.TEXT_DIM);
+    }
+
+    private void drawPreview(java.io.File file, int x, int y, int w, int h) {
+        ResourceLocation texture = WardrobePreview.get(file);
+        if (texture == null) {
+            return;
+        }
+        GlStateManager.bindTexture(mc.getTextureManager().getTexture(texture).getGlTextureId());
+        GlStateManager.enableTexture2D();
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+        GL11.glBegin(GL11.GL_QUADS);
+        GL11.glTexCoord2f(0.0F, 0.0F);
+        GL11.glVertex2f(x, y);
+        GL11.glTexCoord2f(1.0F, 0.0F);
+        GL11.glVertex2f(x + w, y);
+        GL11.glTexCoord2f(1.0F, 1.0F);
+        GL11.glVertex2f(x + w, y + h);
+        GL11.glTexCoord2f(0.0F, 1.0F);
+        GL11.glVertex2f(x, y + h);
+        GL11.glEnd();
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+    }
+
+    private boolean isTileSelected(WardrobeTile tile) {
+        String applied = tile.cape ? WardrobeContent.currentCape() : WardrobeContent.currentSkin();
+        return applied != null && applied.equals(WardrobeContent.relative(tile.cape, tile.file));
     }
 
     private void clickWardrobePage(int mouseX, int mouseY, int mouseButton) {
         if (mouseButton != 0) {
             return;
         }
-        if (this.clickWardrobeCard(this.wardrobeLeftX(), WardrobeContent.capes(), mouseX, mouseY, true)) {
+        for (WardrobeTile tile : this.buildWardrobeTiles()) {
+            if (!tile.contains(mouseX, mouseY)) {
+                continue;
+            }
+            if (tile.cape) {
+                WardrobeContent.applyCape(tile.file);
+            } else {
+                WardrobeContent.applySkin(tile.file);
+            }
             return;
         }
-        this.clickWardrobeCard(this.wardrobeRightX(), WardrobeContent.skins(), mouseX, mouseY, false);
+        // None 按钮区域
+        int cols = Math.max(1, Math.min(TILE_COLS_MAX, (this.width - 40) / (TILE_W + TILE_GAP)));
+        int startX = this.width / 2 - (cols * TILE_W + (cols - 1) * TILE_GAP) / 2;
+        int skinsHeaderY = WARDROBE_TOP + 14 + Math.max(1,
+                (Math.min(WardrobeContent.capes().size(), cols * TILE_ROWS_MAX) + cols - 1) / cols)
+                * (TILE_H + TILE_GAP) + 8;
+        if (this.insideNoneButton(startX, WARDROBE_TOP, mouseX, mouseY, "None")) {
+            WardrobeContent.clearCape();
+        } else if (this.insideNoneButton(startX, skinsHeaderY, mouseX, mouseY, "None")) {
+            WardrobeContent.clearSkin();
+        }
     }
 
-    private boolean clickWardrobeCard(int cardX, List<File> files, int mouseX, int mouseY, boolean cape) {
-        int rowY = WARDROBE_CARD_Y + 22;
-        if (this.insideWardrobeRow(cardX, rowY, mouseX, mouseY)) {
-            if (cape) {
-                WardrobeContent.clearCape();
-            } else {
-                WardrobeContent.clearSkin();
-            }
-            return true;
-        }
-        rowY += WARDROBE_ROW_H;
-        for (int i = 0; i < files.size() && i < WardrobeContent.MAX_ROWS; i++) {
-            if (this.insideWardrobeRow(cardX, rowY, mouseX, mouseY)) {
-                if (cape) {
-                    WardrobeContent.applyCape(files.get(i));
-                } else {
-                    WardrobeContent.applySkin(files.get(i));
-                }
-                return true;
-            }
-            rowY += WARDROBE_ROW_H;
-        }
-        return false;
-    }
-
-    private boolean insideWardrobeRow(int cardX, int rowY, int mouseX, int mouseY) {
-        int rx = cardX + 6;
-        return mouseX >= rx && mouseX <= rx + WARDROBE_CARD_W - 12
-                && mouseY >= rowY && mouseY <= rowY + WARDROBE_ROW_H - 2;
+    private boolean insideNoneButton(int x, int y, int mouseX, int mouseY, String label) {
+        int noneWidth = mc.fontRendererObj.getStringWidth(label) + 12;
+        int noneX = x + 2 * TILE_W + TILE_GAP - noneWidth;
+        return mouseX >= noneX && mouseX <= noneX + noneWidth && mouseY >= y - 1 && mouseY <= y + 9;
     }
 
     /** 折射玻璃卡片：和搜索栏/面板用同一个 LiquidGlassShader，而不是纯深色填充 */
