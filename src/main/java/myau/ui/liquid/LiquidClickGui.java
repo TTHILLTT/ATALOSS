@@ -6,6 +6,7 @@ import myau.module.legit.LegitHudModule;
 import myau.module.modules.*;
 import myau.ui.WardrobeContent;
 import myau.ui.WardrobePreview;
+import myau.ui.WardrobeRenderer;
 import myau.ui.WardrobeScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
@@ -756,11 +757,9 @@ public class LiquidClickGui extends GuiScreen {
         // 常驻预览：披风按 2:1、皮肤按 1:1 居中塞进预览区
         int previewW = TILE_W - 12;
         int previewH = TILE_H - 30;
-        int boxW = tile.cape ? Math.min(previewW, previewH * 2) : Math.min(previewW, previewH);
-        int boxH = tile.cape ? boxW / 2 : boxW;
-        int boxX = tile.x + (TILE_W - boxW) / 2;
-        int boxY = tile.y + 6 + (previewH - boxH) / 2;
-        this.drawPreview(tile.file, boxX, boxY, boxW, boxH);
+        int boxX = tile.x + 6;
+        int boxY = tile.y + 4;
+        this.draw3DPreview(tile, boxX, boxY, previewW, previewH);
 
         String label = tile.file.getName();
         if (label.length() > 14) {
@@ -871,5 +870,29 @@ public class LiquidClickGui extends GuiScreen {
         GlassRenderer.drawRoundedRect(x, y + 4.0F, w, h, radius, 0x0C000000);
         GlassRenderer.drawRoundedOutline(x + 0.5F, y + 0.5F, w - 1.0F, h - 1.0F, radius, 1.0F,
                 GlassRenderer.GLASS_OUTLINE);
+    }
+
+    /** 3D 预览：皮肤画小人、披风画弯折的 cape 模型；失败时回退到平铺贴图 */
+    private void draw3DPreview(WardrobeTile tile, int x, int y, int w, int h) {
+        ResourceLocation texture = WardrobePreview.get(tile.file);
+        if (texture == null) {
+            return;
+        }
+        ScaledResolution sr = new ScaledResolution(mc);
+        int scaleFactor = sr.getScaleFactor();
+        float centerX = x + w / 2.0F;
+        float centerY = y + h * 0.72F;
+        try {
+            WardrobeRenderer.begin(x, y, w, h, scaleFactor);
+            if (tile.cape) {
+                WardrobeRenderer.renderCape(texture, centerX, centerY, 2.0F, 150.0F, 12.0F);
+            } else {
+                WardrobeRenderer.renderSkin(texture, centerX, centerY, 0.95F, 155.0F, 8.0F);
+            }
+            WardrobeRenderer.end();
+        } catch (Throwable t) {
+            WardrobeRenderer.end();
+            this.drawPreview(tile.file, x, y, w, h);
+        }
     }
 }
