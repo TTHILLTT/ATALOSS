@@ -7,11 +7,11 @@ package myau.ui;
  */
 public final class WardrobeTuning {
     /** 皮肤预览 */
-    public static float skinYaw = 165.0F;
-    public static float skinPitch = 6.0F;
-    public static float skinScale = 100.0F;
+    public static float skinYaw = -35.0F;
+    public static float skinPitch = 0.0F;
+    public static float skinScale = 150.0F;
     public static float skinOffsetX = 0.0F;
-    public static float skinOffsetY = 0.0F;
+    public static float skinOffsetY = -26.0F;
 
     /** 披风预览 */
     public static float capeYaw = -20.0F;
@@ -31,11 +31,11 @@ public final class WardrobeTuning {
     }
 
     public static void reset() {
-        skinYaw = 165.0F;
-        skinPitch = 6.0F;
-        skinScale = 100.0F;
+        skinYaw = -35.0F;
+        skinPitch = 0.0F;
+        skinScale = 150.0F;
         skinOffsetX = 0.0F;
-        skinOffsetY = 0.0F;
+        skinOffsetY = -26.0F;
         capeYaw = -20.0F;
         capePitch = 8.0F;
         capeScale = 100.0F;
