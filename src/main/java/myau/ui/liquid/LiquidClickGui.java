@@ -882,6 +882,8 @@ public class LiquidClickGui extends GuiScreen {
         int scaleFactor = sr.getScaleFactor();
         float centerX = x + w / 2.0F;
         float centerY = y + h * 0.72F;
+        // 打底：平铺贴图（一定可见，3D 失败时至少不空白）
+        this.drawPreview(tile.file, x, y, w, h);
         try {
             WardrobeRenderer.begin(x, y, w, h, scaleFactor);
             if (tile.cape) {
@@ -892,7 +894,9 @@ public class LiquidClickGui extends GuiScreen {
             WardrobeRenderer.end();
         } catch (Throwable t) {
             WardrobeRenderer.end();
-            this.drawPreview(tile.file, x, y, w, h);
         }
+        // 调试用边框：确认预览区域确实画到了（红=皮肤，青=披风）
+        GlassRenderer.drawRoundedOutline(x + 0.5F, y + 0.5F, w - 1.0F, h - 1.0F, 4.0F, 1.0F,
+                tile.cape ? 0xFF22D3EE : 0xFFFF3B30);
     }
 }
