@@ -889,7 +889,8 @@ public class LiquidClickGui extends GuiScreen {
         try {
             WardrobeRenderer.begin(x, y, w, h, scaleFactor);
             if (tile.cape) {
-                WardrobeRenderer.renderCape(texture, centerX, centerY, size, 160.0F, 10.0F);
+                // 披风挂在人物背后：同角度会看到背面，这里转 180° 显示正面
+                WardrobeRenderer.renderCape(texture, centerX, centerY, size, -20.0F, 8.0F);
             } else {
                 WardrobeRenderer.renderSkin(texture, centerX, centerY, size, 165.0F, 6.0F);
             }
