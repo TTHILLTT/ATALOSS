@@ -1,6 +1,6 @@
 # ATALOSS
 
-![Preview](/images/image8.png)
+![Preview](/images/image9.png)
 
 [Myau Client](https://myau.sell.app/), for those who can’t afford it.
 
@@ -12,8 +12,6 @@ Based on **`Myau-250910`**, with added features and improvements not found in th
 
 ATALOSS ships a built-in wardrobe for custom capes and skins. Both are client-side only -
 nothing is uploaded anywhere and your real account skin is untouched.
-
-![Wardrobe](/images/wardrobe.jpg)
 
 ### Custom cape
 1. Drop a PNG into `config/ATALOSS/capes/` (created automatically; 64x32 or any **2:1** size works).
