@@ -21,8 +21,8 @@ public final class WardrobeTuning {
     public static float capeOffsetY = 0.0F;
 
     /** 渲染开关 */
-    public static boolean cull = true;
-    public static boolean depth = false;
+    public static boolean cull = false;
+    public static boolean depth = true;
     public static boolean lighting = true;
     /** 在 3D 下面再叠一层平铺贴图，方便对比 */
     public static boolean flatUnderlay = false;
@@ -41,8 +41,8 @@ public final class WardrobeTuning {
         capeScale = 100.0F;
         capeOffsetX = 0.0F;
         capeOffsetY = 0.0F;
-        cull = true;
-        depth = false;
+        cull = false;
+        depth = true;
         lighting = true;
         flatUnderlay = false;
     }

@@ -74,11 +74,9 @@ public final class WardrobeRenderer {
             GlStateManager.pushMatrix();
             GlStateManager.translate(centerX + WardrobeTuning.skinOffsetX,
                     centerY + WardrobeTuning.skinOffsetY, 100.0F);
-            GlStateManager.scale(skinSize, skinSize, skinSize);
-            // 和 RenderLivingBase 一致：模型空间先翻转 (-1,-1,1)，再把脚落到原点。
-            // 少这一层会导致模型左右镜像（皮肤看着"不像"），之前用 rotate(180°,Z) 顶替是错的。
-            GlStateManager.scale(-1.0F, -1.0F, 1.0F);
-            GlStateManager.translate(0.0F, -1.5078125F, 0.0F);
+            // GUI 坐标系 +Y 向下，所以只翻 X（修正左右手性），Y 保持不翻保证正立。
+            // 只翻一次会让绕序反转，因此这里关剔除 + 开深度测试来解决内外表面遮挡。
+            GlStateManager.scale(-skinSize, skinSize, skinSize);
             GlStateManager.rotate(WardrobeTuning.skinYaw, 0.0F, 1.0F, 0.0F);
             GlStateManager.rotate(WardrobeTuning.skinPitch, 1.0F, 0.0F, 0.0F);
             mc.getTextureManager().bindTexture(texture);
