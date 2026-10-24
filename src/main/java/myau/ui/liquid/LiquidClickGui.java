@@ -7,6 +7,7 @@ import myau.module.modules.*;
 import myau.ui.WardrobeContent;
 import myau.ui.WardrobePreview;
 import myau.ui.WardrobeRenderer;
+import myau.ui.WardrobeTuning;
 import myau.ui.WardrobeScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
@@ -728,6 +729,7 @@ public class LiquidClickGui extends GuiScreen {
         for (WardrobeTile tile : this.buildWardrobeTiles()) {
             this.drawWardrobeTile(tile, mouseX, mouseY);
         }
+        this.drawTuningPanel(mouseX, mouseY);
     }
 
     private void drawWardrobeSectionHeader(String name, int x, int y, int count, String noneLabel,
@@ -800,6 +802,9 @@ public class LiquidClickGui extends GuiScreen {
 
     private void clickWardrobePage(int mouseX, int mouseY, int mouseButton) {
         if (mouseButton != 0) {
+            return;
+        }
+        if (this.clickTuningPanel(mouseX, mouseY)) {
             return;
         }
         for (WardrobeTile tile : this.buildWardrobeTiles()) {
@@ -891,6 +896,9 @@ public class LiquidClickGui extends GuiScreen {
         float size = (h - 8.0F) / modelHeight;
         // 模型自身从头顶(-0.5)到脚(+1.5)，中点 0.5：让中点落在方块中心
         float centerY = y + h / 2.0F - 0.5F * size;
+        if (WardrobeTuning.flatUnderlay) {
+            this.drawPreview(tile.file, x, y, w, h);
+        }
         try {
             WardrobeRenderer.begin(x, y, w, h, scaleFactor);
             if (tile.cape) {
@@ -904,5 +912,147 @@ public class LiquidClickGui extends GuiScreen {
             WardrobeRenderer.end();
             this.drawPreview(tile.file, x, y, w, h);
         }
+    }
+
+    // ================= 3D 预览调试面板 =================
+    private static final int TUNE_W = 196;
+    private static final int TUNE_ROW_H = 15;
+    private static final int TUNE_TOP = 56;
+    private static final int TUNE_ROWS = 13;
+
+    private int tuneX() {
+        return this.width - TUNE_W - 12;
+    }
+
+    private int tuneRowY(int index) {
+        return TUNE_TOP + 22 + index * TUNE_ROW_H;
+    }
+
+    /** 行定义：{名称, 步长, 最小值, 最大值, 类型(0=数值,1=开关)}；索引与 clickTuningPanel 保持一致 */
+    private static final Object[][] TUNE_DEFS = {
+            {"Skin Yaw", 5.0F, -180.0F, 180.0F, 0},
+            {"Skin Pitch", 2.0F, -60.0F, 60.0F, 0},
+            {"Skin Zoom%", 5.0F, 30.0F, 300.0F, 0},
+            {"Skin OffX", 2.0F, -60.0F, 60.0F, 0},
+            {"Skin OffY", 2.0F, -60.0F, 60.0F, 0},
+            {"Cape Yaw", 5.0F, -180.0F, 180.0F, 0},
+            {"Cape Pitch", 2.0F, -60.0F, 60.0F, 0},
+            {"Cape Zoom%", 5.0F, 30.0F, 300.0F, 0},
+            {"Cull face", 0.0F, 0.0F, 0.0F, 1},
+            {"Depth test", 0.0F, 0.0F, 0.0F, 1},
+            {"Lighting", 0.0F, 0.0F, 0.0F, 1},
+            {"Flat underlay", 0.0F, 0.0F, 0.0F, 1},
+            {"Reset all", 0.0F, 0.0F, 0.0F, 2},
+    };
+
+    private float tuneGet(int index) {
+        switch (index) {
+            case 0: return WardrobeTuning.skinYaw;
+            case 1: return WardrobeTuning.skinPitch;
+            case 2: return WardrobeTuning.skinScale;
+            case 3: return WardrobeTuning.skinOffsetX;
+            case 4: return WardrobeTuning.skinOffsetY;
+            case 5: return WardrobeTuning.capeYaw;
+            case 6: return WardrobeTuning.capePitch;
+            case 7: return WardrobeTuning.capeScale;
+            case 8: return WardrobeTuning.cull ? 1.0F : 0.0F;
+            case 9: return WardrobeTuning.depth ? 1.0F : 0.0F;
+            case 10: return WardrobeTuning.lighting ? 1.0F : 0.0F;
+            default: return WardrobeTuning.flatUnderlay ? 1.0F : 0.0F;
+        }
+    }
+
+    private void tuneSet(int index, float value) {
+        switch (index) {
+            case 0: WardrobeTuning.skinYaw = value; break;
+            case 1: WardrobeTuning.skinPitch = value; break;
+            case 2: WardrobeTuning.skinScale = value; break;
+            case 3: WardrobeTuning.skinOffsetX = value; break;
+            case 4: WardrobeTuning.skinOffsetY = value; break;
+            case 5: WardrobeTuning.capeYaw = value; break;
+            case 6: WardrobeTuning.capePitch = value; break;
+            case 7: WardrobeTuning.capeScale = value; break;
+            case 8: WardrobeTuning.cull = value > 0.5F; break;
+            case 9: WardrobeTuning.depth = value > 0.5F; break;
+            case 10: WardrobeTuning.lighting = value > 0.5F; break;
+            default: WardrobeTuning.flatUnderlay = value > 0.5F; break;
+        }
+    }
+
+    private void drawTuningPanel(int mouseX, int mouseY) {
+        int x = this.tuneX();
+        int height = 22 + TUNE_ROWS * TUNE_ROW_H + 6;
+        this.drawRefractionCard(x, TUNE_TOP, TUNE_W, height, 10.0F);
+        mc.fontRendererObj.drawStringWithShadow("Tuning (3D preview)", x + 8, TUNE_TOP + 7, GlassRenderer.ACCENT);
+
+        for (int i = 0; i < TUNE_ROWS; i++) {
+            int y = this.tuneRowY(i);
+            String label = (String) TUNE_DEFS[i][0];
+            int type = (Integer) TUNE_DEFS[i][4];
+            boolean hover = mouseY >= y && mouseY <= y + TUNE_ROW_H - 3
+                    && mouseX >= x + 4 && mouseX <= x + TUNE_W - 4;
+            if (hover) {
+                GlassRenderer.drawRoundedRect(x + 4, y - 1, TUNE_W - 8, TUNE_ROW_H - 2, 4, 0x1AFFFFFF);
+            }
+            mc.fontRendererObj.drawStringWithShadow(label, x + 8, y + 1, GlassRenderer.TEXT_DIM);
+            String value;
+            if (type == 0) {
+                value = TUNE_DEFS[i][2] instanceof Float
+                        ? String.format("%.0f", this.tuneGet(i)) : "";
+            } else if (type == 1) {
+                value = this.tuneGet(i) > 0.5F ? "ON" : "OFF";
+            } else {
+                value = "click";
+            }
+            int valueX = x + TUNE_W - 58;
+            mc.fontRendererObj.drawStringWithShadow(value, valueX, y + 1,
+                    type == 1 && this.tuneGet(i) > 0.5F ? GlassRenderer.ACCENT : GlassRenderer.TEXT_MAIN);
+            if (type == 0) {
+                this.drawTuneButton(x + TUNE_W - 40, y - 1, "-", mouseX, mouseY);
+                this.drawTuneButton(x + TUNE_W - 22, y - 1, "+", mouseX, mouseY);
+            }
+        }
+    }
+
+    private void drawTuneButton(int x, int y, String label, int mouseX, int mouseY) {
+        boolean hover = mouseX >= x && mouseX <= x + 16 && mouseY >= y && mouseY <= y + 12;
+        GlassRenderer.drawRoundedRect(x, y, 16, 12, 4, hover ? 0x55FFFFFF : 0x2AFFFFFF);
+        mc.fontRendererObj.drawStringWithShadow(label, x + 8 - mc.fontRendererObj.getStringWidth(label) / 2,
+                y + 2, GlassRenderer.TEXT_MAIN);
+    }
+
+    private boolean clickTuningPanel(int mouseX, int mouseY) {
+        int x = this.tuneX();
+        int height = 22 + TUNE_ROWS * TUNE_ROW_H + 6;
+        if (mouseX < x || mouseX > x + TUNE_W || mouseY < TUNE_TOP || mouseY > TUNE_TOP + height) {
+            return false;
+        }
+        int index = (mouseY - (TUNE_TOP + 22)) / TUNE_ROW_H;
+        if (index < 0 || index >= TUNE_ROWS) {
+            return true;
+        }
+        int type = (Integer) TUNE_DEFS[index][4];
+        if (type == 2) {
+            WardrobeTuning.reset();
+            return true;
+        }
+        if (type == 1) {
+            this.tuneSet(index, this.tuneGet(index) > 0.5F ? 0.0F : 1.0F);
+            return true;
+        }
+        int y = this.tuneRowY(index);
+        if (mouseY < y - 1 || mouseY > y + 11) {
+            return true;
+        }
+        float step = (Float) TUNE_DEFS[index][1];
+        float min = (Float) TUNE_DEFS[index][2];
+        float max = (Float) TUNE_DEFS[index][3];
+        float current = this.tuneGet(index);
+        if (mouseX >= x + TUNE_W - 40 && mouseX <= x + TUNE_W - 24) {
+            this.tuneSet(index, Math.max(min, current - step));
+        } else if (mouseX >= x + TUNE_W - 22 && mouseX <= x + TUNE_W - 6) {
+            this.tuneSet(index, Math.min(max, current + step));
+        }
+        return true;
     }
 }

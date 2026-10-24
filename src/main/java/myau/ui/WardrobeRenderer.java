@@ -27,13 +27,23 @@ public final class WardrobeRenderer {
     public static void begin(int x, int y, int w, int h, int scaleFactor) {
         // 先不做 scissor / 深度：这两者是"模型完全不可见"的高嫌疑项，先确认模型能画出来
         GL11.glDisable(GL11.GL_SCISSOR_TEST);
-        GlStateManager.disableDepth();
-        // 打开剔除：变换里 scale(-s,-s,s)+rotate(180°,Z) 两次翻转抵消，绕序正常，
-        // 打开后只画外表面；关掉会连内表面（UV 镜像）一起画，看起来就是"皮肤不对"
-        GlStateManager.enableCull();
+        if (WardrobeTuning.depth) {
+            GlStateManager.enableDepth();
+            GlStateManager.depthMask(true);
+            GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT);
+        } else {
+            GlStateManager.disableDepth();
+        }
+        if (WardrobeTuning.cull) {
+            GlStateManager.enableCull();
+        } else {
+            GlStateManager.disableCull();
+        }
         GlStateManager.enableRescaleNormal();
         GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
-        RenderHelper.enableStandardItemLighting();
+        if (WardrobeTuning.lighting) {
+            RenderHelper.enableStandardItemLighting();
+        }
     }
 
     public static void end() {
@@ -61,12 +71,14 @@ public final class WardrobeRenderer {
             }
             playerModel.setRotationAngles(0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0625F, mc.thePlayer);
             GlStateManager.pushMatrix();
-            GlStateManager.translate(centerX, centerY, 100.0F);
+            GlStateManager.translate(centerX + WardrobeTuning.skinOffsetX,
+                    centerY + WardrobeTuning.skinOffsetY, 100.0F);
             // 双轴负缩放 + 绕 Z 旋 180°，保持三角形绕序（原版 GUI 物品栏预览同款做法）
-            GlStateManager.scale(-size, -size, size);
+            float skinSize = size * WardrobeTuning.skinScale / 100.0F;
+            GlStateManager.scale(-skinSize, -skinSize, skinSize);
             GlStateManager.rotate(180.0F, 0.0F, 0.0F, 1.0F);
-            GlStateManager.rotate(yaw, 0.0F, 1.0F, 0.0F);
-            GlStateManager.rotate(pitch, 1.0F, 0.0F, 0.0F);
+            GlStateManager.rotate(WardrobeTuning.skinYaw, 0.0F, 1.0F, 0.0F);
+            GlStateManager.rotate(WardrobeTuning.skinPitch, 1.0F, 0.0F, 0.0F);
             mc.getTextureManager().bindTexture(texture);
             playerModel.render(mc.thePlayer, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0625F);
             GlStateManager.popMatrix();
@@ -83,11 +95,13 @@ public final class WardrobeRenderer {
         try {
             buildCape();
             GlStateManager.pushMatrix();
-            GlStateManager.translate(centerX, centerY, 100.0F);
-            GlStateManager.scale(-size, -size, size);
+            GlStateManager.translate(centerX + WardrobeTuning.capeOffsetX,
+                    centerY + WardrobeTuning.capeOffsetY, 100.0F);
+            float capeSize = size * WardrobeTuning.capeScale / 100.0F;
+            GlStateManager.scale(-capeSize, -capeSize, capeSize);
             GlStateManager.rotate(180.0F, 0.0F, 0.0F, 1.0F);
-            GlStateManager.rotate(yaw, 0.0F, 1.0F, 0.0F);
-            GlStateManager.rotate(pitch, 1.0F, 0.0F, 0.0F);
+            GlStateManager.rotate(WardrobeTuning.capeYaw, 0.0F, 1.0F, 0.0F);
+            GlStateManager.rotate(WardrobeTuning.capePitch, 1.0F, 0.0F, 0.0F);
             mc.getTextureManager().bindTexture(texture);
             // 整块披风一次画完：分段做偏移时 translate 在 scale 之后会被放大 size 倍，
             // 段与段之间被拉开到几百像素，散落到屏幕各处
