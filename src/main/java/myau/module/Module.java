@@ -89,6 +89,14 @@ public abstract class Module {
         this.key = integer;
     }
 
+    /**
+     * 绑定键是否被模块当作"输入"使用（例如 FreeLook 的 Hold/Toggle 键）。
+     * 为 true 时 ModuleManager 不会用这个键去开关模块本身。
+     */
+    public boolean usesKeyAsInput() {
+        return false;
+    }
+
     public boolean isHidden() {
         return this.hidden;
     }

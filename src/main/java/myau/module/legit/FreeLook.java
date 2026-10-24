@@ -5,7 +5,6 @@ import myau.event.types.EventType;
 import myau.events.Render3DEvent;
 import myau.events.TickEvent;
 import myau.module.Module;
-import myau.property.properties.IntProperty;
 import myau.property.properties.ModeProperty;
 import myau.util.KeyBindUtil;
 import net.minecraft.client.Minecraft;
@@ -15,6 +14,9 @@ import org.lwjgl.opengl.Display;
 
 /**
  * 自由视角（对应 FPSMaster 的 FreeLook）：按住/开启时鼠标只转相机，不动角色朝向。
+ *
+ * <p>触发键就是**模块自己的 Bind Key**（GUI 里那个 "Bind"）：
+ * HOLD 模式按住它才生效，TOGGLE 模式按一下切一次；没绑定时等于模块开着就一直生效。
  *
  * <p>实现要点：
  * <ol>
@@ -35,8 +37,6 @@ public class FreeLook extends Module {
     public static float prevCameraYaw = 0.0F;
     public static float prevCameraPitch = 0.0F;
 
-    /** 0 = 模块开启时一直生效；否则用这个键触发（HOLD 模式按住，TOGGLE 模式按一下切换） */
-    public final IntProperty holdKey = new IntProperty("hold-key", Keyboard.KEY_NONE, 0, 255);
     /** 0 = HOLD（按住），1 = TOGGLE（按一下开关） */
     public final ModeProperty mode = new ModeProperty("mode", 0, new String[]{"HOLD", "TOGGLE"});
 
@@ -46,6 +46,11 @@ public class FreeLook extends Module {
 
     public FreeLook() {
         super("FreeLook", false, true, true);
+    }
+
+    @Override
+    public boolean usesKeyAsInput() {
+        return true;
     }
 
     @Override
@@ -88,7 +93,7 @@ public class FreeLook extends Module {
             this.release();
             return;
         }
-        int key = this.holdKey.getValue();
+        int key = this.getKey();
         boolean physicallyDown = key != Keyboard.KEY_NONE && KeyBindUtil.isKeyDown(key);
         boolean rising = physicallyDown && !this.keyDown;
         this.keyDown = physicallyDown;

@@ -41,7 +41,7 @@ public class ModuleManager {
     /** 处理一次"按键绑定被按下"（键盘事件与鼠标轮询共用） */
     public void handleBind(int keyCode) {
         for (Module module : this.modules.values()) {
-            if (module.getKey() != keyCode) {
+            if (module.getKey() != keyCode || module.usesKeyAsInput()) {
                 continue;
             }
             boolean shouldNotify = module.toggle();
