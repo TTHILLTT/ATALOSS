@@ -2,7 +2,6 @@ package myau.init;
 
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 import org.spongepowered.asm.launch.MixinBootstrap;
-import org.spongepowered.asm.mixin.MixinEnvironment;
 
 import java.util.Map;
 
@@ -20,20 +19,19 @@ import java.util.Map;
 @IFMLLoadingPlugin.TransformerExclusions({"myau."})
 public class ATALOSSCorePlugin implements IFMLLoadingPlugin {
     public ATALOSSCorePlugin() {
-        System.out.println("[ATALOSS] core plugin start (mixins.ataloss.json)");
+        System.out.println("[ATALOSS] core plugin start");
+        // 只做 bootstrap，不在这里 addConfiguration：
+        // 清单里的 TweakClass=MixinTweaker 会读取 MixinConfigs=mixins.ataloss.json 并注册配置。
+        // 如果这里再注册一次，同一份配置会被处理两遍，且这次注册发生得过早，
+        // 会导致 EntityLivingBase 在配置生效前就被加载 —— 接口型 Mixin（IAccessorEntityLivingBase）
+        // 就不会被应用，运行时抛 IncompatibleClassChangeError。
         try {
             MixinBootstrap.init();
         } catch (Throwable t) {
-            System.out.println("[ATALOSS] MixinBootstrap.init failed (continuing): " + t);
+            System.out.println("[ATALOSS] MixinBootstrap.init failed: " + t);
             t.printStackTrace();
         }
-        try {
-            MixinEnvironment.getDefaultEnvironment().addConfiguration("mixins.ataloss.json");
-            System.out.println("[ATALOSS] mixin config registered by core plugin");
-        } catch (Throwable t) {
-            // 清单里的 MixinConfigs/TweakClass 可能已经注册过同一份配置，这里不算失败
-            System.out.println("[ATALOSS] addConfiguration skipped: " + t);
-        }
+        System.out.println("[ATALOSS] core plugin ready (mixin config loaded from manifest)");
     }
 
     @Override

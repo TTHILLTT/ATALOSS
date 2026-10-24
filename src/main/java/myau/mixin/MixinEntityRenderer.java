@@ -258,7 +258,7 @@ public abstract class MixinEntityRenderer {
                 return false;
             }
         }
-        return ((IAccessorEntityLivingBase) entityLivingBase).getActivePotionsMap().containsKey(potion.id);
+        return ataloss$hasPotion(entityLivingBase, potion);
     }
 
     @Redirect(
@@ -275,7 +275,7 @@ public abstract class MixinEntityRenderer {
                 return false;
             }
         }
-        return ((IAccessorEntityLivingBase) entityLivingBase).getActivePotionsMap().containsKey(potion.id);
+        return ataloss$hasPotion(entityLivingBase, potion);
     }
 
     @Redirect(
@@ -292,7 +292,7 @@ public abstract class MixinEntityRenderer {
                 return false;
             }
         }
-        return ((IAccessorEntityLivingBase) entityPlayerSP).getActivePotionsMap().containsKey(potion.id);
+        return ataloss$hasPotion(entityPlayerSP, potion);
     }
 
     @Unique
@@ -453,5 +453,15 @@ public abstract class MixinEntityRenderer {
     )
     private float ataloss$cameraPrevPitch(Entity entity) {
         return FreeLook.using && FreeLook.active ? FreeLook.prevCameraPitch : entity.prevRotationPitch;
+    }
+
+    /** 不依赖 IAccessorEntityLivingBase 的等价判断（避免接口 Mixin 未应用时抛 ICCE） */
+    private static boolean ataloss$hasPotion(net.minecraft.entity.EntityLivingBase entity, net.minecraft.potion.Potion potion) {
+        for (net.minecraft.potion.PotionEffect effect : entity.getActivePotionEffects()) {
+            if (effect.getPotionID() == potion.id) {
+                return true;
+            }
+        }
+        return false;
     }
 }
