@@ -6,7 +6,7 @@ import myau.module.legit.LegitHudModule;
 import myau.module.modules.*;
 import myau.ui.WardrobeContent;
 import myau.ui.WardrobePreview;
-import myau.ui.WardrobeRenderer;
+import myau.ui.WardrobeFlatPreview;
 import myau.ui.WardrobeTuning;
 import myau.ui.WardrobeScreen;
 import net.minecraft.client.Minecraft;
@@ -874,40 +874,24 @@ public class LiquidClickGui extends GuiScreen {
     }
 
     /** 3D 预览：皮肤画小人、披风画弯折的 cape 模型；失败时回退到平铺贴图 */
+    /**
+     * 方块内容预览：都走平面贴图。
+     *
+     * <p>皮肤 = 各部件正面拼成的正面小人（{@link WardrobeFlatPreview#drawSkinFront}）；
+     * 披风 = 只画有图案的外侧那一面（{@link WardrobeFlatPreview#drawCapeFront}）。
+     */
     private void draw3DPreview(WardrobeTile tile, int x, int y, int w, int h) {
         ResourceLocation texture = WardrobePreview.get(tile.file);
         if (texture == null) {
             return;
         }
-        ScaledResolution sr = new ScaledResolution(mc);
-        int scaleFactor = sr.getScaleFactor();
-        float centerX = x + w / 2.0F;
-        // 披风模型只有 1px 厚，3D 预览里容易看到透明的背面导致"看不到图案"，
-        // 这里对披风使用平铺预览（图案清晰），皮肤继续走 3D 模型
-        if (tile.cape || !WardrobePreview.isSquareSkin(tile.file)) {
-            // 旧版 64x32 皮肤套 64x64 模型会错位，直接显示平铺图
-            this.drawPreview(tile.file, x, y, w, h);
-            return;
-        }
-        // 皮肤模型高 1.5 单位、披风 1.0 单位；由方块高度反推缩放，留 8px 边距
-        float modelHeight = tile.cape ? 1.0F : 1.5F;
-        float size = (h - 8.0F) / modelHeight;
-        // 模型自身从头顶到脚的中点作为方块中心
-        float centerY = y + h / 2.0F - 0.5F * size;
-        if (WardrobeTuning.flatUnderlay) {
-            this.drawPreview(tile.file, x, y, w, h);
-        }
         try {
-            WardrobeRenderer.begin(x, y, w, h, scaleFactor);
             if (tile.cape) {
-                // 披风挂在人物背后：同角度会看到背面，这里转 180° 显示正面
-                WardrobeRenderer.renderCape(texture, centerX, centerY, size, -20.0F, 8.0F);
+                WardrobeFlatPreview.drawCapeFront(tile.file, texture, x, y, w, h);
             } else {
-                WardrobeRenderer.renderSkin(texture, centerX, centerY, size, 165.0F, 6.0F);
+                WardrobeFlatPreview.drawSkinFront(tile.file, texture, x, y, w, h);
             }
-            WardrobeRenderer.end();
         } catch (Throwable t) {
-            WardrobeRenderer.end();
             this.drawPreview(tile.file, x, y, w, h);
         }
     }
