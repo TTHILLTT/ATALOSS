@@ -159,6 +159,7 @@ public class ATALOSS {
         moduleManager.modules.put(CustomFog.class, new CustomFog());
         moduleManager.modules.put(HitColor.class, new HitColor());
         moduleManager.modules.put(FreeLook.class, new FreeLook());
+        moduleManager.modules.put(CustomCape.class, new CustomCape());
         commandManager.commands.add(new BindCommand());
         commandManager.commands.add(new ConfigCommand());
         commandManager.commands.add(new DenickCommand());
