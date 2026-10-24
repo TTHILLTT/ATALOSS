@@ -890,8 +890,8 @@ public class LiquidClickGui extends GuiScreen {
         // 皮肤模型高 1.5 单位、披风 1.0 单位；由方块高度反推缩放，留 8px 边距
         float modelHeight = tile.cape ? 1.0F : 1.5F;
         float size = (h - 8.0F) / modelHeight;
-        // 模型自身从头顶(-0.5)到脚(+1.5)，中点 0.5：让中点落在方块中心
-        float centerY = y + h / 2.0F - 0.5F * size;
+        // 皮肤模型的锚点是"脚"（原版把脚平移到原点），所以对齐方块底部；披风仍用中心对齐
+        float centerY = tile.cape ? (y + h / 2.0F - 0.5F * size) : (y + h - 4.0F);
         if (WardrobeTuning.flatUnderlay) {
             this.drawPreview(tile.file, x, y, w, h);
         }

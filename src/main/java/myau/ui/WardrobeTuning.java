@@ -35,7 +35,7 @@ public final class WardrobeTuning {
         skinPitch = 0.0F;
         skinScale = 150.0F;
         skinOffsetX = 0.0F;
-        skinOffsetY = -26.0F;
+        skinOffsetY = 0.0F;
         capeYaw = -20.0F;
         capePitch = 8.0F;
         capeScale = 100.0F;

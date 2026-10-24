@@ -70,13 +70,15 @@ public final class WardrobeRenderer {
                 playerModel = new ModelPlayer(0.0F, false);
             }
             playerModel.setRotationAngles(0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0625F, mc.thePlayer);
+            float skinSize = size * WardrobeTuning.skinScale / 100.0F;
             GlStateManager.pushMatrix();
             GlStateManager.translate(centerX + WardrobeTuning.skinOffsetX,
                     centerY + WardrobeTuning.skinOffsetY, 100.0F);
-            // 双轴负缩放 + 绕 Z 旋 180°，保持三角形绕序（原版 GUI 物品栏预览同款做法）
-            float skinSize = size * WardrobeTuning.skinScale / 100.0F;
-            GlStateManager.scale(-skinSize, -skinSize, skinSize);
-            GlStateManager.rotate(180.0F, 0.0F, 0.0F, 1.0F);
+            GlStateManager.scale(skinSize, skinSize, skinSize);
+            // 和 RenderLivingBase 一致：模型空间先翻转 (-1,-1,1)，再把脚落到原点。
+            // 少这一层会导致模型左右镜像（皮肤看着"不像"），之前用 rotate(180°,Z) 顶替是错的。
+            GlStateManager.scale(-1.0F, -1.0F, 1.0F);
+            GlStateManager.translate(0.0F, -1.5078125F, 0.0F);
             GlStateManager.rotate(WardrobeTuning.skinYaw, 0.0F, 1.0F, 0.0F);
             GlStateManager.rotate(WardrobeTuning.skinPitch, 1.0F, 0.0F, 0.0F);
             mc.getTextureManager().bindTexture(texture);
