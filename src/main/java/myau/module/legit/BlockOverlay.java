@@ -31,6 +31,8 @@ import net.minecraft.util.MovingObjectPosition;
  */
 public class BlockOverlay extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
+    /** MixinRenderGlobal 用它决定要不要取消原版的方块选择框 */
+    public static boolean using = false;
 
     public final BooleanProperty fill = new BooleanProperty("fill", true);
     public final BooleanProperty outline = new BooleanProperty("outline", true);
@@ -43,6 +45,16 @@ public class BlockOverlay extends Module {
 
     public BlockOverlay() {
         super("BlockOverlay", false, true, true);
+    }
+
+    @Override
+    public void onEnabled() {
+        using = true;
+    }
+
+    @Override
+    public void onDisabled() {
+        using = false;
     }
 
     @EventTarget
