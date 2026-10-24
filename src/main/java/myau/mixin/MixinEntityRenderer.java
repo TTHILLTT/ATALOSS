@@ -6,6 +6,8 @@ import myau.event.EventManager;
 import myau.events.PickEvent;
 import myau.events.RaytraceEvent;
 import myau.events.Render3DEvent;
+import myau.module.legit.CustomFog;
+import myau.module.legit.FreeLook;
 import myau.module.legit.MinimizedBobbing;
 import myau.module.legit.OldAnimations;
 import myau.module.modules.*;
@@ -14,6 +16,9 @@ import net.minecraft.block.material.Material;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.renderer.EntityRenderer;
+import net.minecraft.client.renderer.GlStateManager;
+import java.nio.FloatBuffer;
+import org.lwjgl.opengl.GL11;
 import net.minecraft.client.settings.GameSettings;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
@@ -324,5 +329,129 @@ public abstract class MixinEntityRenderer {
     )
     private boolean ataloss$bobbing(GameSettings gameSettings) {
         return gameSettings.viewBobbing && !MinimizedBobbing.using;
+    }
+
+    @Shadow
+    private float fogColorRed;
+    @Shadow
+    private float fogColorGreen;
+    @Shadow
+    private float fogColorBlue;
+    @Shadow
+    private FloatBuffer fogColorBuffer;
+
+    @Unique
+    private boolean ataloss$shouldOverrideFog() {
+        if (!CustomFog.using || this.mc.thePlayer == null) {
+            return false;
+        }
+        // 失明药水是硬性的视野限制，覆盖它等于给优势
+        if (this.mc.thePlayer.isPotionActive(Potion.blindness)) {
+            return false;
+        }
+        CustomFog module = (CustomFog) ATALOSS.moduleManager.modules.get(CustomFog.class);
+        if (module == null) {
+            return false;
+        }
+        if (!module.affectWater.getValue() && this.mc.thePlayer.isInsideOfMaterial(Material.water)) {
+            return false;
+        }
+        if (!module.affectLava.getValue() && this.mc.thePlayer.isInsideOfMaterial(Material.lava)) {
+            return false;
+        }
+        return true;
+    }
+
+    @Inject(
+            method = {"updateFogColor"},
+            at = {@At("RETURN")}
+    )
+    private void ataloss$fogColor(float partialTicks, CallbackInfo callbackInfo) {
+        if (!this.ataloss$shouldOverrideFog()) {
+            return;
+        }
+        CustomFog module = (CustomFog) ATALOSS.moduleManager.modules.get(CustomFog.class);
+        if (module == null) {
+            return;
+        }
+        int rgb = module.color.getValue();
+        this.fogColorRed = (float) ((rgb >> 16) & 0xFF) / 255.0F;
+        this.fogColorGreen = (float) ((rgb >> 8) & 0xFF) / 255.0F;
+        this.fogColorBlue = (float) (rgb & 0xFF) / 255.0F;
+    }
+
+    @Inject(
+            method = {"setupFog"},
+            at = {@At("RETURN")}
+    )
+    private void ataloss$fog(int startCoords, float partialTicks, CallbackInfo callbackInfo) {
+        if (!this.ataloss$shouldOverrideFog()) {
+            return;
+        }
+        CustomFog module = (CustomFog) ATALOSS.moduleManager.modules.get(CustomFog.class);
+        if (module == null) {
+            return;
+        }
+        int rgb = module.color.getValue();
+        float red = (float) ((rgb >> 16) & 0xFF) / 255.0F;
+        float green = (float) ((rgb >> 8) & 0xFF) / 255.0F;
+        float blue = (float) (rgb & 0xFF) / 255.0F;
+        this.fogColorBuffer.clear();
+        this.fogColorBuffer.put(red).put(green).put(blue).put(1.0F);
+        this.fogColorBuffer.flip();
+        GL11.glFog(GL11.GL_FOG_COLOR, this.fogColorBuffer);
+        if (module.isLinear()) {
+            GlStateManager.setFog(GL11.GL_LINEAR);
+            float start = module.startDistance.getValue();
+            float end = module.endDistance.getValue();
+            if (end <= start) {
+                end = start + 1.0F;
+            }
+            GlStateManager.setFogStart(start);
+            GlStateManager.setFogEnd(end);
+        } else {
+            GlStateManager.setFog(GL11.GL_EXP);
+            GlStateManager.setFogDensity(1.0F / Math.max(0.1F, module.endDistance.getValue()));
+        }
+    }
+
+    @Inject(
+            method = {"updateCameraAndRender"},
+            at = {@At("HEAD")}
+    )
+    private void ataloss$freeLook(float partialTicks, long nanoTime, CallbackInfo callbackInfo) {
+        FreeLook.overrideMouse();
+    }
+
+    @Redirect(
+            method = {"orientCamera"},
+            at = @At(value = "FIELD", target = "Lnet/minecraft/entity/Entity;rotationYaw:F")
+    )
+    private float ataloss$cameraYaw(Entity entity) {
+        return FreeLook.using && FreeLook.active ? FreeLook.cameraYaw : entity.rotationYaw;
+    }
+
+    @Redirect(
+            method = {"orientCamera"},
+            at = @At(value = "FIELD", target = "Lnet/minecraft/entity/Entity;prevRotationYaw:F")
+    )
+    private float ataloss$cameraPrevYaw(Entity entity) {
+        return FreeLook.using && FreeLook.active ? FreeLook.prevCameraYaw : entity.prevRotationYaw;
+    }
+
+    @Redirect(
+            method = {"orientCamera"},
+            at = @At(value = "FIELD", target = "Lnet/minecraft/entity/Entity;rotationPitch:F")
+    )
+    private float ataloss$cameraPitch(Entity entity) {
+        return FreeLook.using && FreeLook.active ? FreeLook.cameraPitch : entity.rotationPitch;
+    }
+
+    @Redirect(
+            method = {"orientCamera"},
+            at = @At(value = "FIELD", target = "Lnet/minecraft/entity/Entity;prevRotationPitch:F")
+    )
+    private float ataloss$cameraPrevPitch(Entity entity) {
+        return FreeLook.using && FreeLook.active ? FreeLook.prevCameraPitch : entity.prevRotationPitch;
     }
 }

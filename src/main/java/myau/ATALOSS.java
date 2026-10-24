@@ -153,6 +153,12 @@ public class ATALOSS {
         moduleManager.modules.put(DamageIndicator.class, new DamageIndicator());
         moduleManager.modules.put(MoreParticles.class, new MoreParticles());
         moduleManager.modules.put(MinimizedBobbing.class, new MinimizedBobbing());
+        moduleManager.modules.put(Hitboxes.class, new Hitboxes());
+        moduleManager.modules.put(CleanView.class, new CleanView());
+        moduleManager.modules.put(Crosshair.class, new Crosshair());
+        moduleManager.modules.put(CustomFog.class, new CustomFog());
+        moduleManager.modules.put(HitColor.class, new HitColor());
+        moduleManager.modules.put(FreeLook.class, new FreeLook());
         commandManager.commands.add(new BindCommand());
         commandManager.commands.add(new ConfigCommand());
         commandManager.commands.add(new DenickCommand());
