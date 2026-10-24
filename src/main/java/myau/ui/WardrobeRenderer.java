@@ -19,7 +19,7 @@ public final class WardrobeRenderer {
     private static final Minecraft mc = Minecraft.getMinecraft();
     private static ModelPlayer playerModel;
     private static ModelBiped capeBase;
-    private static ModelRenderer[] capeSegments;
+    private static ModelRenderer capeSegment;
 
     private WardrobeRenderer() {
     }
@@ -72,7 +72,7 @@ public final class WardrobeRenderer {
         }
     }
 
-    /** 披风预览：4 段小方块按角度叠加，模拟布料的弯曲 */
+    /** 披风预览：单个 10x16x1 的 cape 模型，按固定角度摆放 */
     public static void renderCape(ResourceLocation texture, float centerX, float centerY, float size,
                                   float yaw, float pitch) {
         if (texture == null) {
@@ -87,33 +87,22 @@ public final class WardrobeRenderer {
             GlStateManager.rotate(yaw, 0.0F, 1.0F, 0.0F);
             GlStateManager.rotate(pitch, 1.0F, 0.0F, 0.0F);
             mc.getTextureManager().bindTexture(texture);
-            GlStateManager.pushMatrix();
-            GlStateManager.translate(0.0F, 0.0F, 0.0F);
-            for (int i = 0; i < capeSegments.length; i++) {
-                GlStateManager.pushMatrix();
-                GlStateManager.translate(0.0F, i * 4.0F, 0.0F);
-                GlStateManager.rotate(i * 7.0F, 1.0F, 0.0F, 0.0F);
-                capeSegments[i].render(0.0625F);
-                GlStateManager.popMatrix();
-            }
-            GlStateManager.popMatrix();
+            // 整块披风一次画完：分段做偏移时 translate 在 scale 之后会被放大 size 倍，
+            // 段与段之间被拉开到几百像素，散落到屏幕各处
+            capeSegment.render(0.0625F);
             GlStateManager.popMatrix();
         } catch (Throwable ignored) {
         }
     }
 
     private static void buildCape() {
-        if (capeSegments != null) {
+        if (capeSegment != null) {
             return;
         }
         capeBase = new ModelBiped();
-        capeSegments = new ModelRenderer[4];
-        for (int i = 0; i < capeSegments.length; i++) {
-            ModelRenderer segment = new ModelRenderer(capeBase, 0, 0);
-            // 每段 10x4x1，UV 从 (0, i*4) 起，正好取披风贴图的对应条带
-            segment.setTextureOffset(0, i * 4);
-            segment.addBox(-5.0F, 0.0F, -0.5F, 10, 4, 1, 0.0F);
-            capeSegments[i] = segment;
-        }
+        // 与 MC 披风模型一致：10x16x1 的薄板，UV 从 (0,0) 起
+        capeSegment = new ModelRenderer(capeBase, 0, 0);
+        capeSegment.addBox(-5.0F, 0.0F, -0.5F, 10, 16, 1, 0.0F);
+        capeSegment.setRotationPoint(0.0F, 0.0F, 0.0F);
     }
 }
