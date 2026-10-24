@@ -83,9 +83,11 @@ tasks.withType(JavaCompile::class) {
 tasks.withType(org.gradle.jvm.tasks.Jar::class) {
     archiveBaseName.set(jarName)
     manifest.attributes.run {
+        // 显式 core plugin：由它 MixinBootstrap.init() + addConfiguration，
+        // 不再依赖 FML 对普通 jar 的 TweakClass 扫描（那是静默失败的重灾区）
+        this["FMLCorePlugin"] = "myau.init.ATALOSSCorePlugin"
         this["FMLCorePluginContainsFMLMod"] = "true"
         this["ForceLoadAsMod"] = "true"
-        // If you don't want mixins, remove these lines
         this["TweakClass"] = "org.spongepowered.asm.launch.MixinTweaker"
         this["MixinConfigs"] = "mixins.$modid.json"
 	    if (transformerFile.exists())
