@@ -270,12 +270,18 @@ public final class GlassControls {
         @Override
         public void draw(int mouseX, int mouseY) {
             String bind = module.getKey() == 0 ? "None" : KeyBindUtil.getKeyName(module.getKey());
-            String label = binding ? "Press a key..." : "Bind: " + bind;
+            String label = binding ? "Press a key / mouse..." : "Bind: " + bind;
             mc.fontRendererObj.drawString(label, x + 2, y + 3, binding ? GlassRenderer.ACCENT : GlassRenderer.TEXT_DIM);
         }
 
         @Override
         public void mouseDown(int mouseX, int mouseY, int button) {
+            // 正在监听时，中键/侧键直接作为绑定（左键用于取消、右键清空）
+            if (binding && button >= 2) {
+                module.setKey(KeyBindUtil.mouseKey(button));
+                binding = false;
+                return;
+            }
             if (button == 0 && isHovered(mouseX, mouseY)) {
                 binding = !binding;
             } else if (button == 1 && isHovered(mouseX, mouseY)) {

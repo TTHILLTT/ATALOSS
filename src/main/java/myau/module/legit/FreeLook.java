@@ -6,6 +6,7 @@ import myau.events.Render3DEvent;
 import myau.events.TickEvent;
 import myau.module.Module;
 import myau.property.properties.IntProperty;
+import myau.property.properties.ModeProperty;
 import myau.util.KeyBindUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.MathHelper;
@@ -34,10 +35,14 @@ public class FreeLook extends Module {
     public static float prevCameraYaw = 0.0F;
     public static float prevCameraPitch = 0.0F;
 
-    /** 0 = 模块开启时一直生效；否则按住该键才生效（默认 0） */
+    /** 0 = 模块开启时一直生效；否则用这个键触发（HOLD 模式按住，TOGGLE 模式按一下切换） */
     public final IntProperty holdKey = new IntProperty("hold-key", Keyboard.KEY_NONE, 0, 255);
+    /** 0 = HOLD（按住），1 = TOGGLE（按一下开关） */
+    public final ModeProperty mode = new ModeProperty("mode", 0, new String[]{"HOLD", "TOGGLE"});
 
     private static int previousView = -1;
+    private boolean keyDown = false;
+    private boolean toggled = false;
 
     public FreeLook() {
         super("FreeLook", false, true, true);
@@ -51,11 +56,14 @@ public class FreeLook extends Module {
     @Override
     public void onDisabled() {
         using = false;
+        this.keyDown = false;
+        this.toggled = false;
         this.release();
     }
 
     private void release() {
         active = false;
+        this.toggled = false;
         if (mc.gameSettings != null && previousView >= 0) {
             mc.gameSettings.thirdPersonView = previousView;
         }
@@ -81,7 +89,21 @@ public class FreeLook extends Module {
             return;
         }
         int key = this.holdKey.getValue();
-        boolean want = key == Keyboard.KEY_NONE || KeyBindUtil.isKeyDown(key);
+        boolean physicallyDown = key != Keyboard.KEY_NONE && KeyBindUtil.isKeyDown(key);
+        boolean rising = physicallyDown && !this.keyDown;
+        this.keyDown = physicallyDown;
+
+        boolean want;
+        if (this.mode.getValue() == 0) {
+            // HOLD：按住 hold-key 才生效；没设键就等于模块开着时一直生效
+            want = key == Keyboard.KEY_NONE || physicallyDown;
+        } else {
+            // TOGGLE：按一下切一次；没设键同样等于模块开着时一直生效
+            if (rising) {
+                this.toggled = !this.toggled;
+            }
+            want = key == Keyboard.KEY_NONE || this.toggled;
+        }
         if (want == active) {
             return;
         }

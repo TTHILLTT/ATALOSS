@@ -99,8 +99,12 @@ public class BindCommand extends Command {
             try {
                 String numStr = buttonName.substring(5);
                 int buttonNum = Integer.parseInt(numStr);
-                if (buttonNum >= 0 && buttonNum < Mouse.getButtonCount()) {
-                    return buttonNum;
+                // 对外是 1-based（MOUSE4 = 第一个侧键 = LWJGL button 3），MOUSE0 兼容按索引写
+                if (buttonNum == 0) {
+                    return 0;
+                }
+                if (buttonNum >= 1 && buttonNum <= Mouse.getButtonCount()) {
+                    return buttonNum - 1;
                 }
             } catch (NumberFormatException | StringIndexOutOfBoundsException e) {
             }

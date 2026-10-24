@@ -8,12 +8,17 @@ import myau.events.TickEvent;
 import myau.module.modules.GuiModule;
 import myau.module.modules.HUD;
 import myau.util.ChatUtil;
+import myau.util.KeyBindUtil;
+import net.minecraft.client.Minecraft;
+import org.lwjgl.input.Mouse;
 import myau.util.SoundUtil;
 
 import java.util.LinkedHashMap;
 
 public class ModuleManager {
     private boolean sound = false;
+    /** 鼠标按键边沿检测（索引 = LWJGL button） */
+    private final boolean[] mouseDown = new boolean[8];
     public final LinkedHashMap<Class<?>, Module> modules = new LinkedHashMap<>();
 
     public Module getModule(String string) {
@@ -30,8 +35,13 @@ public class ModuleManager {
 
     @EventTarget
     public void onKey(KeyEvent event) {
+        this.handleBind(event.getKey());
+    }
+
+    /** 处理一次"按键绑定被按下"（键盘事件与鼠标轮询共用） */
+    public void handleBind(int keyCode) {
         for (Module module : this.modules.values()) {
-            if (module.getKey() != event.getKey()) {
+            if (module.getKey() != keyCode) {
                 continue;
             }
             boolean shouldNotify = module.toggle();
@@ -52,11 +62,28 @@ public class ModuleManager {
 
     @EventTarget
     public void onTick(TickEvent event) {
-        if (event.getType() == EventType.PRE) {
-            if (this.sound) {
-                this.sound = false;
-                SoundUtil.playSound("random.click");
+        if (event.getType() != EventType.PRE) {
+            return;
+        }
+        if (this.sound) {
+            this.sound = false;
+            SoundUtil.playSound("random.click");
+        }
+        // 鼠标绑定：中键与侧键（跳过左右键，避免和攻击/使用打架）
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.currentScreen != null) {
+            for (int i = 0; i < this.mouseDown.length; i++) {
+                this.mouseDown[i] = false;
             }
+            return;
+        }
+        int count = Math.min(this.mouseDown.length, Mouse.getButtonCount());
+        for (int button = 2; button < count; button++) {
+            boolean down = Mouse.isButtonDown(button);
+            if (down && !this.mouseDown[button]) {
+                this.handleBind(KeyBindUtil.mouseKey(button));
+            }
+            this.mouseDown[button] = down;
         }
     }
 }
