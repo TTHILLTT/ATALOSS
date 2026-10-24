@@ -881,6 +881,11 @@ public class LiquidClickGui extends GuiScreen {
         ScaledResolution sr = new ScaledResolution(mc);
         int scaleFactor = sr.getScaleFactor();
         float centerX = x + w / 2.0F;
+        if (!tile.cape && !WardrobePreview.isSquareSkin(tile.file)) {
+            // 旧版 64x32 皮肤套 64x64 模型会错位，直接显示平铺图
+            this.drawPreview(tile.file, x, y, w, h);
+            return;
+        }
         // 皮肤模型高 1.5 单位、披风 1.0 单位；由方块高度反推缩放，留 8px 边距
         float modelHeight = tile.cape ? 1.0F : 1.5F;
         float size = (h - 8.0F) / modelHeight;
