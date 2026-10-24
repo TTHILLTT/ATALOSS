@@ -25,16 +25,12 @@ public final class WardrobeRenderer {
     }
 
     public static void begin(int x, int y, int w, int h, int scaleFactor) {
-        GL11.glEnable(GL11.GL_SCISSOR_TEST);
-        GL11.glScissor(x * scaleFactor, mc.displayHeight - (y + h) * scaleFactor, w * scaleFactor, h * scaleFactor);
-        GlStateManager.enableDepth();
-        // glClear 受 depthMask 影响：模糊管线可能把 depthMask 关了，必须显式打开，否则清不掉旧深度，
-        // 3D 模型会被世界渲染残留的深度直接裁掉（表现就是"什么都看不到"）
-        GlStateManager.depthMask(true);
-        GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT);
-        // 模型在 X 轴做了镜像缩放，绕序会翻转；这里直接关剔除，避免整块模型被背面剔除掉
+        // 先不做 scissor / 深度：这两者是"模型完全不可见"的高嫌疑项，先确认模型能画出来
+        GL11.glDisable(GL11.GL_SCISSOR_TEST);
+        GlStateManager.disableDepth();
         GlStateManager.disableCull();
         GlStateManager.enableRescaleNormal();
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
         RenderHelper.enableStandardItemLighting();
     }
 
@@ -49,7 +45,6 @@ public final class WardrobeRenderer {
         GlStateManager.enableBlend();
         GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
         GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
-        GL11.glDisable(GL11.GL_SCISSOR_TEST);
     }
 
     /** 小人预览；size 是"每个模型单位对应多少 GUI 像素"（约 30 时小人 ≈ 60px 高） */
