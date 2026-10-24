@@ -882,7 +882,9 @@ public class LiquidClickGui extends GuiScreen {
         ScaledResolution sr = new ScaledResolution(mc);
         int scaleFactor = sr.getScaleFactor();
         float centerX = x + w / 2.0F;
-        if (!tile.cape && !WardrobePreview.isSquareSkin(tile.file)) {
+        // 披风模型只有 1px 厚，3D 预览里容易看到透明的背面导致"看不到图案"，
+        // 这里对披风使用平铺预览（图案清晰），皮肤继续走 3D 模型
+        if (tile.cape || !WardrobePreview.isSquareSkin(tile.file)) {
             // 旧版 64x32 皮肤套 64x64 模型会错位，直接显示平铺图
             this.drawPreview(tile.file, x, y, w, h);
             return;
