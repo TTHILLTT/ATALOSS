@@ -1,5 +1,18 @@
 # 更新日志
 
+## 1.2.1 — 2026-10-24
+
+修复"jar 直接放进 mods 跑不起来"的一系列问题，并补充按键与自由视角体验。
+
+### 修复
+- **jar 放进 mods 后完全不被加载**：客户端没有任何 `@Mod`，仅靠清单的 `TweakClass` 让 FML 顺带注入 Mixin，FML 1.8.9 对这种普通 jar 的扫描不可靠且静默失败。新增 `myau.init.ATALOSSCorePlugin`（`IFMLLoadingPlugin`）并在清单声明 `FMLCorePlugin`
+- **进世界即崩（`IncompatibleClassChangeError`）**：同一份 mixin 配置被 core plugin 与 `TweakClass` 注册两次，`EntityLivingBase` 在配置生效前加载，接口型 Mixin 未应用。core plugin 改为只做 `MixinBootstrap.init()`；`checkPotion` 等 3 处对 `activePotionsMap` 的接口强转改为遍历 `getActivePotionEffects()`
+- **生产环境大量 `Mixin apply failed ... could not find any targets`**：Mixin 注解处理器每次编译都会重写 `mixins.ataloss.refmap.json` 且只写本次参与编译的类，增量编译把它截成 1 条（完整为 46 条），导致所有 `@Inject/@Redirect/@Accessor` 退化为按 MCP 原名查找。已关闭增量编译（`options.isIncremental = false`），保证 refmap 始终完整
+
+### 新增
+- **鼠标 4 / 5（侧键）绑定**：`ModuleManager` 轮询中键/侧键并做边沿检测（左右键刻意不绑）；`KeyBindUtil` 统一 1-based 命名（`MOUSE4`/`MOUSE5`）；`.bind <module> MOUSE4` 可用；Liquid GUI 的 Bind 控件可直接捕获鼠标
+- **FreeLook**：新增 `HOLD` / `TOGGLE` 模式；触发键直接复用模块自己的 Bind Key；Y 轴方向与原版一致
+
 ## 1.2 — 2026-10-24
 
 视觉功能补齐（全部为只读/纯客户端表现，不改变任何判定）：
