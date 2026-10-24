@@ -28,7 +28,9 @@ public final class WardrobeRenderer {
         // 先不做 scissor / 深度：这两者是"模型完全不可见"的高嫌疑项，先确认模型能画出来
         GL11.glDisable(GL11.GL_SCISSOR_TEST);
         GlStateManager.disableDepth();
-        GlStateManager.disableCull();
+        // 打开剔除：变换里 scale(-s,-s,s)+rotate(180°,Z) 两次翻转抵消，绕序正常，
+        // 打开后只画外表面；关掉会连内表面（UV 镜像）一起画，看起来就是"皮肤不对"
+        GlStateManager.enableCull();
         GlStateManager.enableRescaleNormal();
         GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
         RenderHelper.enableStandardItemLighting();
