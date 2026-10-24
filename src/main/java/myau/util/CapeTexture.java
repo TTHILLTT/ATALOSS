@@ -24,6 +24,16 @@ public final class CapeTexture {
     public static final ResourceLocation LOCATION = new ResourceLocation("ataloss", "capes/custom.png");
 
     private static boolean ready;
+    private static int width;
+    private static int height;
+
+    public static int getWidth() {
+        return width;
+    }
+
+    public static int getHeight() {
+        return height;
+    }
 
     private CapeTexture() {
     }
@@ -57,19 +67,26 @@ public final class CapeTexture {
             if (image == null) {
                 return "不是有效的图片: " + file.getName();
             }
-            int width = image.getWidth();
-            int height = image.getHeight();
-            if (width <= 0 || height <= 0) {
-                return "图片尺寸无效: " + width + "x" + height;
+            int w = image.getWidth();
+            int h = image.getHeight();
+            if (w <= 0 || h <= 0) {
+                return "图片尺寸无效: " + w + "x" + h;
             }
-            // 原版披风模型固定使用 64x32 的 UV 空间（ModelPlayer.bipedCloak），
-            // 所以任意 2:1 的高清图都要缩到 64x32 才能正确贴图；用双三次插值保观感。
-            if (width != 64 || height != 32) {
-                if (width != height * 2) {
-                    return "宽高比必须是 2:1（当前 " + width + "x" + height + "）";
-                }
-                image = resize(image, 64, 32);
+            if (w != h * 2) {
+                return "宽高比必须是 2:1（当前 " + w + "x" + h + "）";
             }
+            // 披风 UV 是归一化的（ModelBox 按模型声明的 64x32 归一化），贴图实际尺寸不影响
+            // 贴图区域，只决定 texel 密度 —— 所以这里按原始分辨率上传，HD 图就是真的 HD。
+            // 只有超大图做保护性缩放，避免撑爆显存。
+            if (w > 4096) {
+                int targetW = 4096;
+                int targetH = 2048;
+                image = resize(image, targetW, targetH);
+                w = targetW;
+                h = targetH;
+            }
+            CapeTexture.width = w;
+            CapeTexture.height = h;
             DynamicTexture texture = new DynamicTexture(image);
             Minecraft.getMinecraft().getTextureManager().loadTexture(LOCATION, texture);
             ready = true;

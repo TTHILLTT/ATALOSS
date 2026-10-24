@@ -68,7 +68,8 @@ public class CustomCape extends Module {
         CapeTexture.clear();
         String error = CapeTexture.load(this.path.getValue());
         if (error == null) {
-            ChatUtil.sendFormatted(String.format("%sCape loaded&r", myau.ATALOSS.clientName));
+            ChatUtil.sendFormatted(String.format("%sCape loaded &7(%dx%d)&r", myau.ATALOSS.clientName,
+                    CapeTexture.getWidth(), CapeTexture.getHeight()));
         } else {
             ChatUtil.sendFormatted(String.format("%sCape failed: &c%s&r", myau.ATALOSS.clientName, error));
         }
