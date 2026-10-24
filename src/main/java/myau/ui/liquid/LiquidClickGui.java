@@ -690,7 +690,7 @@ public class LiquidClickGui extends GuiScreen {
                                   int mouseX, int mouseY) {
         int rows = Math.min(files.size(), WardrobeContent.MAX_ROWS) + 1;
         int height = this.wardrobeCardH(rows);
-        GlassRenderer.drawGlassPanel(x, WARDROBE_CARD_Y, WARDROBE_CARD_W, height, 14);
+        this.drawRefractionCard(x, WARDROBE_CARD_Y, WARDROBE_CARD_W, height, 14.0F);
         mc.fontRendererObj.drawStringWithShadow(name, x + 10, WARDROBE_CARD_Y + 8, GlassRenderer.ACCENT);
         String count = files.size() + " file(s)";
         mc.fontRendererObj.drawStringWithShadow(count,
@@ -769,5 +769,45 @@ public class LiquidClickGui extends GuiScreen {
         int rx = cardX + 6;
         return mouseX >= rx && mouseX <= rx + WARDROBE_CARD_W - 12
                 && mouseY >= rowY && mouseY <= rowY + WARDROBE_ROW_H - 2;
+    }
+
+    /** 折射玻璃卡片：和搜索栏/面板用同一个 LiquidGlassShader，而不是纯深色填充 */
+    private void drawRefractionCard(float x, float y, float w, float h, float radius) {
+        int blurTex = getBlurTexture();
+        if (blurTex > 0) {
+            ScaledResolution sr = new ScaledResolution(mc);
+            int sw = sr.getScaledWidth(), sh = sr.getScaledHeight();
+            GlStateManager.bindTexture(blurTex);
+            GlStateManager.enableTexture2D();
+            GlStateManager.disableCull();
+            GlStateManager.enableBlend();
+            GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+            GlassRenderer.LiquidGlassShader.INSTANCE.use();
+            GlassRenderer.LiquidGlassShader.INSTANCE.setPanelParams(
+                    0.5F, 0.5F * h / w,
+                    Math.min(radius / w, Math.min(0.5F, 0.5F * h / w)),
+                    w / (float) sw, h / (float) sh,
+                    x / (float) sw, 1.0F - y / (float) sh);
+            GL11.glBegin(GL11.GL_QUADS);
+            GL11.glTexCoord2f(0.0F, 0.0F);
+            GL11.glVertex2f(x, y);
+            GL11.glTexCoord2f(1.0F, 0.0F);
+            GL11.glVertex2f(x + w, y);
+            GL11.glTexCoord2f(1.0F, 1.0F);
+            GL11.glVertex2f(x + w, y + h);
+            GL11.glTexCoord2f(0.0F, 1.0F);
+            GL11.glVertex2f(x, y + h);
+            GL11.glEnd();
+            GlassRenderer.LiquidGlassShader.INSTANCE.stop();
+            GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+        } else {
+            // 模糊管线不可用时的兜底：淡一点的半透明底，避免文字糊在场景上
+            GlassRenderer.drawRoundedRect(x, y, w, h, radius, 0x66151519);
+        }
+        // 只保留柔光阴影 + 发丝描边，不再叠深色玻璃体
+        GlassRenderer.drawRoundedRect(x, y + 2.0F, w, h, radius, 0x15000000);
+        GlassRenderer.drawRoundedRect(x, y + 4.0F, w, h, radius, 0x0C000000);
+        GlassRenderer.drawRoundedOutline(x + 0.5F, y + 0.5F, w - 1.0F, h - 1.0F, radius, 1.0F,
+                GlassRenderer.GLASS_OUTLINE);
     }
 }

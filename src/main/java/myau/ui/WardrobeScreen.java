@@ -45,7 +45,6 @@ public class WardrobeScreen extends GuiScreen {
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        drawRect(0, 0, this.width, this.height, 0xB4000000);
 
         int leftX = this.width / 2 - PANEL_WIDTH - 10;
         int rightX = this.width / 2 + 10;
@@ -64,7 +63,7 @@ public class WardrobeScreen extends GuiScreen {
 
     private void drawColumn(String name, int x, int y, List<File> files, String applied,
                             int mouseX, int mouseY, boolean cape) {
-        drawRect(x, y, x + PANEL_WIDTH, y + 18 + (Math.min(files.size(), MAX_ROWS) + 1) * ROW_HEIGHT + 6, 0x66000000);
+        drawRect(x, y, x + PANEL_WIDTH, y + 18 + (Math.min(files.size(), MAX_ROWS) + 1) * ROW_HEIGHT + 6, 0x8C000000);
         mc.fontRendererObj.drawStringWithShadow(name, x + 6, y + 5, ACCENT);
         String count = files.size() + " file(s)";
         mc.fontRendererObj.drawStringWithShadow(count, x + PANEL_WIDTH - 6 - mc.fontRendererObj.getStringWidth(count), y + 5, TEXT_DIM);
