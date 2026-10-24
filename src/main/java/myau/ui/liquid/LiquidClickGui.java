@@ -4,6 +4,7 @@ import myau.ATALOSS;
 import myau.module.Module;
 import myau.module.legit.LegitHudModule;
 import myau.module.modules.*;
+import myau.ui.WardrobeScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.ScaledResolution;
@@ -205,8 +206,9 @@ public class LiquidClickGui extends GuiScreen {
         mc.fontRendererObj.drawStringWithShadow("ATALOSS", 20, 12, GlassRenderer.ACCENT);
         mc.fontRendererObj.drawStringWithShadow("Dev TTHILLTT", 20, 24, GlassRenderer.TEXT_FAINT);
 
-        // 顶部菜单切换：Cheat / Legit
+        // 顶部菜单切换：Cheat / Legit + 衣柜
         this.drawMenuSwitch(mouseX, mouseY);
+        this.drawWardrobeButton(mouseX, mouseY);
         if (this.activePanels().isEmpty()) {
             // 只有 Legit 页可能为空（配置里被裁掉）→ 退回占位卡片
             this.drawLegitPlaceholder();
@@ -532,6 +534,10 @@ public class LiquidClickGui extends GuiScreen {
 
     @Override
     public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+        if (this.handleWardrobeClick(mouseX, mouseY, mouseButton)) {
+            mc.displayGuiScreen(new WardrobeScreen(this));
+            return;
+        }
         if (this.handleMenuSwitchClick(mouseX, mouseY, mouseButton)) {
             return;
         }
@@ -600,5 +606,33 @@ public class LiquidClickGui extends GuiScreen {
             GlStateManager.disableBlend();
             GlStateManager.color(1, 1, 1, 1);
         }
+    }
+
+    private static final int WARDROBE_W = 74;
+    private static final int WARDROBE_H = 20;
+
+    private int wardrobeX() {
+        return this.menuSwitchX() - WARDROBE_W - 6;
+    }
+
+    /** 顶栏的"Wardrobe"按钮：打开衣柜快速切披风/皮肤 */
+    private void drawWardrobeButton(int mouseX, int mouseY) {
+        int bx = this.wardrobeX();
+        int by = MENU_SWITCH_Y;
+        boolean hover = mouseX >= bx && mouseX <= bx + WARDROBE_W && mouseY >= by && mouseY <= by + WARDROBE_H;
+        drawGlassCapsuleBg(bx, by, WARDROBE_W, WARDROBE_H, hover ? 1.0F : 0.85F);
+        String label = "Wardrobe";
+        mc.fontRendererObj.drawString(
+                label,
+                bx + WARDROBE_W / 2 - mc.fontRendererObj.getStringWidth(label) / 2,
+                by + 6,
+                hover ? GlassRenderer.TEXT_MAIN : GlassRenderer.TEXT_DIM);
+    }
+
+    private boolean handleWardrobeClick(int mouseX, int mouseY, int mouseButton) {
+        int bx = this.wardrobeX();
+        int by = MENU_SWITCH_Y;
+        return mouseButton == 0 && mouseX >= bx && mouseX <= bx + WARDROBE_W
+                && mouseY >= by && mouseY <= by + WARDROBE_H;
     }
 }

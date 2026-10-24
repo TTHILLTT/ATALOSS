@@ -342,8 +342,9 @@ public class ClickGui extends GuiScreen {
         mc.fontRendererObj.drawStringWithShadow("dev, ksyz", 4, this.height - 3 - mc.fontRendererObj.FONT_HEIGHT * 2, new Color(60, 162, 253).getRGB());
         mc.fontRendererObj.drawStringWithShadow("TTHILLTT Forked", 4, this.height - 3 - mc.fontRendererObj.FONT_HEIGHT, new Color(60, 162, 253).getRGB());
 
-        // 顶部菜单切换：Cheat / Legit
+        // 顶部菜单切换：Cheat / Legit + 衣柜
         this.drawMenuSwitch(x, y);
+        this.drawWardrobeButton(x, y);
         ArrayList<CategoryComponent> categories = this.activeCategories();
         if (categories.isEmpty()) {
             // 只有 Legit 页可能为空 → 退回占位提示
@@ -370,6 +371,10 @@ public class ClickGui extends GuiScreen {
     }
 
     public void mouseClicked(int x, int y, int mouseButton) {
+        if (this.handleWardrobeClick(x, y, mouseButton)) {
+            this.mc.displayGuiScreen(new WardrobeScreen(this));
+            return;
+        }
         if (this.handleMenuSwitchClick(x, y, mouseButton)) {
             return;
         }
@@ -500,5 +505,30 @@ public class ClickGui extends GuiScreen {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private static final int WARDROBE_W = 72;
+    private static final int WARDROBE_H = 14;
+
+    private int wardrobeX() {
+        return this.menuSwitchX() - WARDROBE_W - 4;
+    }
+
+    private void drawWardrobeButton(int mouseX, int mouseY) {
+        int sx = this.wardrobeX();
+        int sy = 4;
+        boolean hover = mouseX >= sx && mouseX <= sx + WARDROBE_W && mouseY >= sy && mouseY <= sy + WARDROBE_H;
+        drawRect(sx, sy, sx + WARDROBE_W, sy + WARDROBE_H, hover ? 0xE61E1E24 : 0xD218181D);
+        String label = "Wardrobe";
+        mc.fontRendererObj.drawStringWithShadow(
+                label, sx + WARDROBE_W / 2 - mc.fontRendererObj.getStringWidth(label) / 2, sy + 3,
+                hover ? 0xFFFFFFFF : 0xFF9A9AA5);
+    }
+
+    private boolean handleWardrobeClick(int mouseX, int mouseY, int mouseButton) {
+        int sx = this.wardrobeX();
+        int sy = 4;
+        return mouseButton == 0 && mouseX >= sx && mouseX <= sx + WARDROBE_W
+                && mouseY >= sy && mouseY <= sy + WARDROBE_H;
     }
 }
