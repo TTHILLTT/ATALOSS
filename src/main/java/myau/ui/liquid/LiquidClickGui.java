@@ -4,6 +4,7 @@ import myau.ATALOSS;
 import myau.module.Module;
 import myau.module.legit.LegitHudModule;
 import myau.module.modules.*;
+import myau.ui.WardrobeContent;
 import myau.ui.WardrobeScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
@@ -15,6 +16,7 @@ import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL30;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -38,6 +40,8 @@ public class LiquidClickGui extends GuiScreen {
     private final List<GlassPanel> panels = new ArrayList<>();
     /** Legit 菜单的面板（只含 isLegit() 的模块，移植自 FPSMaster 的非作弊功能） */
     private final List<GlassPanel> legitPanels = new ArrayList<>();
+    /** 衣柜页面是否展开 */
+    private boolean wardrobeOpen;
     private final StringBuilder search = new StringBuilder();
     private boolean searchFocused;
     private int searchW = 220;
@@ -209,6 +213,10 @@ public class LiquidClickGui extends GuiScreen {
         // 顶部菜单切换：Cheat / Legit + 衣柜
         this.drawMenuSwitch(mouseX, mouseY);
         this.drawWardrobeButton(mouseX, mouseY);
+        if (this.wardrobeOpen) {
+            this.drawWardrobePage(mouseX, mouseY);
+            return;
+        }
         if (this.activePanels().isEmpty()) {
             // 只有 Legit 页可能为空（配置里被裁掉）→ 退回占位卡片
             this.drawLegitPlaceholder();
@@ -535,7 +543,11 @@ public class LiquidClickGui extends GuiScreen {
     @Override
     public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
         if (this.handleWardrobeClick(mouseX, mouseY, mouseButton)) {
-            mc.displayGuiScreen(new WardrobeScreen(this));
+            this.wardrobeOpen = !this.wardrobeOpen;
+            return;
+        }
+        if (this.wardrobeOpen) {
+            this.clickWardrobePage(mouseX, mouseY, mouseButton);
             return;
         }
         if (this.handleMenuSwitchClick(mouseX, mouseY, mouseButton)) {
@@ -557,6 +569,10 @@ public class LiquidClickGui extends GuiScreen {
     @Override
     public void keyTyped(char typedChar, int keyCode) {
         if (keyCode == Keyboard.KEY_ESCAPE) {
+            if (this.wardrobeOpen) {
+                this.wardrobeOpen = false;
+                return;
+            }
             mc.displayGuiScreen(null);
             return;
         }
@@ -620,13 +636,13 @@ public class LiquidClickGui extends GuiScreen {
         int bx = this.wardrobeX();
         int by = MENU_SWITCH_Y;
         boolean hover = mouseX >= bx && mouseX <= bx + WARDROBE_W && mouseY >= by && mouseY <= by + WARDROBE_H;
-        drawGlassCapsuleBg(bx, by, WARDROBE_W, WARDROBE_H, hover ? 1.0F : 0.85F);
+        drawGlassCapsuleBg(bx, by, WARDROBE_W, WARDROBE_H, hover || this.wardrobeOpen ? 1.0F : 0.85F);
         String label = "Wardrobe";
         mc.fontRendererObj.drawString(
                 label,
                 bx + WARDROBE_W / 2 - mc.fontRendererObj.getStringWidth(label) / 2,
                 by + 6,
-                hover ? GlassRenderer.TEXT_MAIN : GlassRenderer.TEXT_DIM);
+                hover || this.wardrobeOpen ? GlassRenderer.TEXT_MAIN : GlassRenderer.TEXT_DIM);
     }
 
     private boolean handleWardrobeClick(int mouseX, int mouseY, int mouseButton) {
@@ -634,5 +650,124 @@ public class LiquidClickGui extends GuiScreen {
         int by = MENU_SWITCH_Y;
         return mouseButton == 0 && mouseX >= bx && mouseX <= bx + WARDROBE_W
                 && mouseY >= by && mouseY <= by + WARDROBE_H;
+    }
+
+    private static final int WARDROBE_CARD_W = 210;
+    private static final int WARDROBE_ROW_H = 16;
+    private static final int WARDROBE_CARD_Y = 54;
+
+    private int wardrobeLeftX() {
+        return this.width / 2 - WARDROBE_CARD_W - 8;
+    }
+
+    private int wardrobeRightX() {
+        return this.width / 2 + 8;
+    }
+
+    private int wardrobeCardH(int rows) {
+        return 26 + rows * WARDROBE_ROW_H;
+    }
+
+    /** Liquid 风格衣柜页：内容画在模糊背景上的玻璃卡片里 */
+    private void drawWardrobePage(int mouseX, int mouseY) {
+        List<File> capes = WardrobeContent.capes();
+        List<File> skins = WardrobeContent.skins();
+        int leftRows = Math.min(capes.size(), WardrobeContent.MAX_ROWS) + 1;
+        int rightRows = Math.min(skins.size(), WardrobeContent.MAX_ROWS) + 1;
+
+        String title = "Wardrobe";
+        mc.fontRendererObj.drawStringWithShadow(
+                title, this.width / 2 - mc.fontRendererObj.getStringWidth(title) / 2, 34, GlassRenderer.ACCENT);
+        String hint = "Capes / Skins  -  click to apply, ESC to close";
+        mc.fontRendererObj.drawStringWithShadow(
+                hint, this.width / 2 - mc.fontRendererObj.getStringWidth(hint) / 2, 44, GlassRenderer.TEXT_DIM);
+
+        this.drawWardrobeCard("Capes", this.wardrobeLeftX(), capes, WardrobeContent.currentCape(), true, mouseX, mouseY);
+        this.drawWardrobeCard("Skins", this.wardrobeRightX(), skins, WardrobeContent.currentSkin(), false, mouseX, mouseY);
+    }
+
+    private void drawWardrobeCard(String name, int x, List<File> files, String applied, boolean cape,
+                                  int mouseX, int mouseY) {
+        int rows = Math.min(files.size(), WardrobeContent.MAX_ROWS) + 1;
+        int height = this.wardrobeCardH(rows);
+        GlassRenderer.drawGlassPanel(x, WARDROBE_CARD_Y, WARDROBE_CARD_W, height, 14);
+        mc.fontRendererObj.drawStringWithShadow(name, x + 10, WARDROBE_CARD_Y + 8, GlassRenderer.ACCENT);
+        String count = files.size() + " file(s)";
+        mc.fontRendererObj.drawStringWithShadow(count,
+                x + WARDROBE_CARD_W - 10 - mc.fontRendererObj.getStringWidth(count),
+                WARDROBE_CARD_Y + 8, GlassRenderer.TEXT_FAINT);
+
+        int rowY = WARDROBE_CARD_Y + 22;
+        this.drawWardrobeRow(x, rowY, "None", applied == null, mouseX, mouseY);
+        rowY += WARDROBE_ROW_H;
+        for (int i = 0; i < files.size() && i < WardrobeContent.MAX_ROWS; i++) {
+            File file = files.get(i);
+            String label = file.getName();
+            if (label.length() > 26) {
+                label = label.substring(0, 23) + "...";
+            }
+            boolean selected = applied != null && applied.equals(WardrobeContent.relative(cape, file));
+            this.drawWardrobeRow(x, rowY, label, selected, mouseX, mouseY);
+            rowY += WARDROBE_ROW_H;
+        }
+        if (files.size() > WardrobeContent.MAX_ROWS) {
+            mc.fontRendererObj.drawStringWithShadow("... +" + (files.size() - WardrobeContent.MAX_ROWS) + " more",
+                    x + 10, rowY + 2, GlassRenderer.TEXT_DIM);
+        }
+    }
+
+    private void drawWardrobeRow(int cardX, int rowY, String label, boolean selected, int mouseX, int mouseY) {
+        int rx = cardX + 6;
+        int rw = WARDROBE_CARD_W - 12;
+        boolean hover = mouseX >= rx && mouseX <= rx + rw && mouseY >= rowY && mouseY <= rowY + WARDROBE_ROW_H - 2;
+        if (selected) {
+            GlassRenderer.drawRoundedRect(rx, rowY, rw, WARDROBE_ROW_H - 3, 6, GlassRenderer.ACTIVE_FILL);
+        } else if (hover) {
+            GlassRenderer.drawRoundedRect(rx, rowY, rw, WARDROBE_ROW_H - 3, 6, GlassRenderer.HOVER_FILL);
+        }
+        mc.fontRendererObj.drawStringWithShadow(
+                (selected ? "> " : "  ") + label, rx + 6, rowY + 3,
+                selected ? GlassRenderer.ACCENT : (hover ? GlassRenderer.TEXT_MAIN : GlassRenderer.TEXT_DIM));
+    }
+
+    private void clickWardrobePage(int mouseX, int mouseY, int mouseButton) {
+        if (mouseButton != 0) {
+            return;
+        }
+        if (this.clickWardrobeCard(this.wardrobeLeftX(), WardrobeContent.capes(), mouseX, mouseY, true)) {
+            return;
+        }
+        this.clickWardrobeCard(this.wardrobeRightX(), WardrobeContent.skins(), mouseX, mouseY, false);
+    }
+
+    private boolean clickWardrobeCard(int cardX, List<File> files, int mouseX, int mouseY, boolean cape) {
+        int rowY = WARDROBE_CARD_Y + 22;
+        if (this.insideWardrobeRow(cardX, rowY, mouseX, mouseY)) {
+            if (cape) {
+                WardrobeContent.clearCape();
+            } else {
+                WardrobeContent.clearSkin();
+            }
+            return true;
+        }
+        rowY += WARDROBE_ROW_H;
+        for (int i = 0; i < files.size() && i < WardrobeContent.MAX_ROWS; i++) {
+            if (this.insideWardrobeRow(cardX, rowY, mouseX, mouseY)) {
+                if (cape) {
+                    WardrobeContent.applyCape(files.get(i));
+                } else {
+                    WardrobeContent.applySkin(files.get(i));
+                }
+                return true;
+            }
+            rowY += WARDROBE_ROW_H;
+        }
+        return false;
+    }
+
+    private boolean insideWardrobeRow(int cardX, int rowY, int mouseX, int mouseY) {
+        int rx = cardX + 6;
+        return mouseX >= rx && mouseX <= rx + WARDROBE_CARD_W - 12
+                && mouseY >= rowY && mouseY <= rowY + WARDROBE_ROW_H - 2;
     }
 }
