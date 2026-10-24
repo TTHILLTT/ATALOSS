@@ -149,6 +149,10 @@ public class ATALOSS {
         moduleManager.modules.put(SoundModifier.class, new SoundModifier());
         moduleManager.modules.put(ToggleSneak.class, new ToggleSneak());
         moduleManager.modules.put(OldAnimations.class, new OldAnimations());
+        moduleManager.modules.put(BlockOverlay.class, new BlockOverlay());
+        moduleManager.modules.put(DamageIndicator.class, new DamageIndicator());
+        moduleManager.modules.put(MoreParticles.class, new MoreParticles());
+        moduleManager.modules.put(MinimizedBobbing.class, new MinimizedBobbing());
         commandManager.commands.add(new BindCommand());
         commandManager.commands.add(new ConfigCommand());
         commandManager.commands.add(new DenickCommand());

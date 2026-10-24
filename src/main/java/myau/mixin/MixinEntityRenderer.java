@@ -6,6 +6,7 @@ import myau.event.EventManager;
 import myau.events.PickEvent;
 import myau.events.RaytraceEvent;
 import myau.events.Render3DEvent;
+import myau.module.legit.MinimizedBobbing;
 import myau.module.legit.OldAnimations;
 import myau.module.modules.*;
 import net.minecraft.block.Block;
@@ -13,6 +14,7 @@ import net.minecraft.block.material.Material;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.renderer.EntityRenderer;
+import net.minecraft.client.settings.GameSettings;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.item.ItemStack;
@@ -311,5 +313,16 @@ public abstract class MixinEntityRenderer {
             return OldAnimations.getClientEyeHeight(this.ataloss$partialTicks);
         }
         return entity.getEyeHeight();
+    }
+
+    @Redirect(
+            method = {"setupCameraTransform"},
+            at = @At(
+                    value = "FIELD",
+                    target = "Lnet/minecraft/client/settings/GameSettings;viewBobbing:Z"
+            )
+    )
+    private boolean ataloss$bobbing(GameSettings gameSettings) {
+        return gameSettings.viewBobbing && !MinimizedBobbing.using;
     }
 }
