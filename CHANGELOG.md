@@ -1,0 +1,38 @@
+# 更新日志
+
+## 1.1 — 2026-10-24
+
+首个以 **ATALOSS** 名义发布的版本。相对 1.0.2（原 OpenMyau 分支）的主要变化：
+
+### 品牌与兼容
+- 客户端更名为 **ATALOSS**：主类 `ATALOSS`、modid `ataloss`、jar `ATALOSS-1.1.jar`、配置目录 `./config/ATALOSS/`、账号文件 `ataloss.accounts.json`
+- 旧路径自动回退：仍会读取 `./config/OpenMyau/` 与 `openmyau.accounts.json`，写入走新路径
+- Java 包名 `myau`、作者署名 `TTHILLTT` 保持不变
+
+### 界面
+- **双 GUI 体系**：Liquid Glass（全屏 FBO + 折射着色器）与轻量 2D GUI 二选一，`ClickGui.style` 切换，三层互斥保证轻量模式下玻璃管线零绘制
+- **Cheat / Legit 菜单切换**：两套 GUI 顶端都有 `Cheat | Legit` 双段按钮，状态存 `ClickGui.menu` 随配置持久化
+- **Legit 菜单**（24 个非作弊模块，见下）
+- **HUD 拖拽编辑器**：`HudEditor` 模块打开，左键拖动、右键关闭元素、ESC 保存；位置写回当前配置档案
+
+### 新增 Legit 模块（24）
+- HUD 信息（12）：Fps、Cps、Clock、Coords、Direction、Ping、PlayTime、Potions、Server、Reach、Combo、Keystrokes
+- 工具（12）：CustomFov、TimeChanger、AutoGG、AutoText、SoundModifier、ToggleSneak、OldAnimations、HudEditor、BlockOverlay、DamageIndicator、MoreParticles、MinimizedBobbing
+
+### 视觉
+- **OldAnimations（1.7 动画）**：11 种格挡风格（Lunar / 1.7 / Swang / Sigma / Swank / Swong / Debug / Luna / Jigsaw / Jello / Push）、old-swing / old-using / old-bow / old-rod / block-swing / old-third-person / old-damage / 蹲下视角插值、物品 XYZ/scale 微调
+- **BlockOverlay**：准星方块填充 + 描边，RGB 颜色与透明度独立配置，可选穿透显示，开启时自动隐藏原版黑色选择框
+- **DamageIndicator**：命中伤害数字上浮淡出
+- **MoreParticles**：命中暴击/锋利粒子、心/火/血特效、击杀闪电/爆炸
+- **MinimizedBobbing**：关闭走动视角晃动
+
+### 核心
+- `FastPlace` 新增 **KEEPY** 模式：长按右键期间只在起手方块所在 Y 层放置；`keep-y-redirect` 用视线面重定向替代丢弃点击，速度与 Normal 一致且不会拓宽桥面
+- `Scaffold` 恢复为上游实现
+- 属性收集改为沿继承链扫描，修复基类属性在 GUI 不可见、配置不持久化的问题
+
+### 修复
+- 点击 Legit 按钮后画面仍显示 Cheat 面板（`drawScreen` 未使用 `activePanels()`）
+- OldAnimations 格挡时 `NoSuchFieldError: $SwitchMap$net$minecraft$item$EnumAction`（mixin 内枚举 switch 生成合成字段）
+- BlockOverlay 完全不可见（世界坐标未转摄像机相对坐标、未 `enableRenderState`）
+- BlockOverlay 描边不可见（`ColorProperty` 只存 RGB，ARGB 落盘后 alpha 被截断为 0）

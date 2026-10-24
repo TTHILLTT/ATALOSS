@@ -27,7 +27,7 @@
 | 当前分支 | `main`，HEAD = `772fbfa fix: fixed some visual problems`（2026-08-07） |
 | 提交总数 | 137（`49aa1e3 Initial commit` 2025-10-02 → 2026-08-07） |
 | 跟踪文件 | 648（其中 376 个是 `configs/` 下的社区预设） |
-| mod id / jar | `ataloss` / `ATALOSS-1.0.2.jar` |
+| mod id / jar | `ataloss` / `ATALOSS-1.1.jar` |
 | 遥测/更新检查 | **无**。全仓库除账号登录外没有任何外部 HTTP 调用 |
 
 ### 血统链
@@ -86,15 +86,15 @@
 - `architectury-pack200` 做 JAR 压缩；`shadowJar` + `remapJar` 产出最终包
 - 开发运行：`me.djtheredstoner:DevAuth-forge-legacy:1.2.1`（`runClient` 时用真账号登录，免正版启动器）
 - 三个产物（改名后已用 `gradlew.bat --offline clean build` 重新构建并验证，**BUILD SUCCESSFUL**）：
-  - `build/intermediates/ATALOSS-1.0.2-without-deps.jar`（≈812 KB，未 remap）
-  - `build/intermediates/ATALOSS-1.0.2-non-obfuscated-with-deps.jar`（≈1.77 MB）
-  - `build/libs/ATALOSS-1.0.2.jar`（≈1.88 MB，**分发用 remap 成品**；manifest 里 `MixinConfigs: mixins.ataloss.json`，jar 内含 `myau/ATALOSS.class` 与 `mixins.ataloss.refmap.json`，无任何 `OpenMyau` 残留条目）
+  - `build/intermediates/ATALOSS-1.1-without-deps.jar`（≈812 KB，未 remap）
+  - `build/intermediates/ATALOSS-1.1-non-obfuscated-with-deps.jar`（≈1.77 MB）
+  - `build/libs/ATALOSS-1.1.jar`（≈1.88 MB，**分发用 remap 成品**；manifest 里 `MixinConfigs: mixins.ataloss.json`，jar 内含 `myau/ATALOSS.class` 与 `mixins.ataloss.refmap.json`，无任何 `OpenMyau` 残留条目）
 - 构建命令：`./gradlew build`（在 Windows 上即 `gradlew.bat build`）
 
 `gradle.properties`：
 ```
 loom.platform=forge   baseGroup=myau   mcVersion=1.8.9
-modid=ataloss      version=1.0.2     jarName=ATALOSS
+modid=ataloss      version=1.1     jarName=ATALOSS
 ```
 
 ---
@@ -747,7 +747,7 @@ drawScreen(mouseX, mouseY, partialTicks)
 | 改分包拦截顺序 | `MixinNetworkManager`（Blink → Lag 的顺序就在这 20 行里） |
 | 配置结构 | `Config.load/save` + 各 `Property.read/write` |
 
-> 验证方式：`gradlew.bat build`（当前工作树在 2026-08-07 已成功产出 `build/libs/ATALOSS-1.0.2.jar`）；
+> 验证方式：`gradlew.bat build`（当前工作树在 2026-08-07 已成功产出 `build/libs/ATALOSS-1.1.jar`）；
 > 运行调试：`gradlew.bat runClient`（DevAuth 会拉起真账号登录）。
 
 ---
