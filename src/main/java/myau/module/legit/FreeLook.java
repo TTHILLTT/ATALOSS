@@ -135,7 +135,8 @@ public class FreeLook extends Module {
         float sensitivity = mc.gameSettings.mouseSensitivity * 0.6F + 0.2F;
         float multiplier = sensitivity * sensitivity * sensitivity * 8.0F;
         cameraYaw += mc.mouseHelper.deltaX * multiplier * 0.15F;
-        cameraPitch += mc.mouseHelper.deltaY * multiplier * 0.15F;
+        // 与原版视角方向一致：鼠标上推 = 抬头，所以这里减 deltaY
+        cameraPitch -= mc.mouseHelper.deltaY * multiplier * 0.15F;
         cameraPitch = MathHelper.clamp_float(cameraPitch, -90.0F, 90.0F);
         return false;
     }
