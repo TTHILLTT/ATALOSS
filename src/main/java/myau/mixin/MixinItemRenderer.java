@@ -112,39 +112,33 @@ public abstract class MixinItemRenderer {
             if (this.itemToRender.getItem() instanceof ItemMap) {
                 this.renderItemMap(player, pitch, equipped, swingProgress);
             } else if (player.getItemInUseCount() > 0) {
+                // 注意：这里不能用 switch(EnumAction) —— 枚举 switch 会生成 $SwitchMap 合成字段，
+                // 方法被合并进 ItemRenderer 后该字段不存在，运行时直接 NoSuchFieldError
                 EnumAction action = this.itemToRender.getItemUseAction();
-                switch (action) {
-                    case NONE:
+                if (action == EnumAction.NONE) {
+                    this.transformFirstPersonItem(equipped, 0.0F);
+                } else if (action == EnumAction.EAT || action == EnumAction.DRINK) {
+                    if (module.oldUsing.getValue()) {
+                        this.performDrinking(player, partialTicks);
+                        this.transformFirstPersonItem(equipped, swingProgress);
+                    } else {
                         this.transformFirstPersonItem(equipped, 0.0F);
-                        break;
-                    case EAT:
-                    case DRINK:
-                        if (module.oldUsing.getValue()) {
-                            this.performDrinking(player, partialTicks);
-                            this.transformFirstPersonItem(equipped, swingProgress);
-                        } else {
-                            this.transformFirstPersonItem(equipped, 0.0F);
-                            this.doItemUsedTransformations(swingProgress);
-                        }
-                        break;
-                    case BLOCK:
-                        if (module.oldBlock.getValue()) {
-                            this.ataloss$drawBlocking(module, equipped, swingProgress);
-                        } else {
-                            this.transformFirstPersonItem(equipped, 0.0F);
-                            this.doBlockTransformations();
-                        }
-                        break;
-                    case BOW:
-                        if (module.oldBow.getValue()) {
-                            this.transformFirstPersonItem(equipped, swingProgress);
-                        } else {
-                            this.transformFirstPersonItem(equipped, 0.0F);
-                        }
-                        this.doBowTransformations(partialTicks, player);
-                        break;
-                    default:
-                        break;
+                        this.doItemUsedTransformations(swingProgress);
+                    }
+                } else if (action == EnumAction.BLOCK) {
+                    if (module.oldBlock.getValue()) {
+                        this.ataloss$drawBlocking(module, equipped, swingProgress);
+                    } else {
+                        this.transformFirstPersonItem(equipped, 0.0F);
+                        this.doBlockTransformations();
+                    }
+                } else if (action == EnumAction.BOW) {
+                    if (module.oldBow.getValue()) {
+                        this.transformFirstPersonItem(equipped, swingProgress);
+                    } else {
+                        this.transformFirstPersonItem(equipped, 0.0F);
+                    }
+                    this.doBowTransformations(partialTicks, player);
                 }
             } else {
                 this.doItemUsedTransformations(swingProgress);
@@ -178,7 +172,7 @@ public abstract class MixinItemRenderer {
             GlStateManager.rotate(-sin * 55.0F / 2.0F, -8.0F, 0.0F, 9.0F);
             GlStateManager.rotate(-sin * 45.0F, 1.0F, sin / 2.0F, 0.0F);
             this.doBlockTransformations();
-            GlStateManager.translate(0.2F, mc.thePlayer != null && mc.thePlayer.isSneaking() ? 0.1F : 0.1F, 0.7F);
+            GlStateManager.translate(0.2F, mc.thePlayer != null && mc.thePlayer.isSneaking() ? 0.2F : 0.1F, 0.7F);
         } else if (mode == OldAnimations.MODE_DEBUG) {
             this.transformFirstPersonItem(0.2F, swing);
             this.doBlockTransformations();
