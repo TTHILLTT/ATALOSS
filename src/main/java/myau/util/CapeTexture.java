@@ -62,6 +62,14 @@ public final class CapeTexture {
             if (width <= 0 || height <= 0) {
                 return "图片尺寸无效: " + width + "x" + height;
             }
+            // 原版披风模型固定使用 64x32 的 UV 空间（ModelPlayer.bipedCloak），
+            // 所以任意 2:1 的高清图都要缩到 64x32 才能正确贴图；用双三次插值保观感。
+            if (width != 64 || height != 32) {
+                if (width != height * 2) {
+                    return "宽高比必须是 2:1（当前 " + width + "x" + height + "）";
+                }
+                image = resize(image, 64, 32);
+            }
             DynamicTexture texture = new DynamicTexture(image);
             Minecraft.getMinecraft().getTextureManager().loadTexture(LOCATION, texture);
             ready = true;
@@ -69,6 +77,24 @@ public final class CapeTexture {
         } catch (Throwable t) {
             return "加载失败: " + t.getClass().getSimpleName() + " " + t.getMessage();
         }
+    }
+
+    /** 高质量缩放到 64x32（披风 UV 空间是固定的） */
+    private static BufferedImage resize(BufferedImage source, int width, int height) {
+        BufferedImage target = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        java.awt.Graphics2D graphics = target.createGraphics();
+        try {
+            graphics.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
+                    java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            graphics.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING,
+                    java.awt.RenderingHints.VALUE_RENDER_QUALITY);
+            graphics.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                    java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+            graphics.drawImage(source, 0, 0, width, height, null);
+        } finally {
+            graphics.dispose();
+        }
+        return target;
     }
 
     public static void clear() {
